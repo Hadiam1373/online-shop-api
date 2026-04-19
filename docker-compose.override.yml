@@ -1,0 +1,20 @@
+# Override file for development - automatically loaded by docker-compose
+# This file provides additional development-specific configurations
+
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DEBUG: 'app:*'
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.git
+    ports:
+      - '5000:5000'
+      - '9229:9229'  # Node debugger port
+    command: npm run dev

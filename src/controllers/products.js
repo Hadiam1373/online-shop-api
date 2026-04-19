@@ -1,0 +1,133 @@
+const { PrismaClient } = require("@prisma/client");
+
+const prisma = new PrismaClient();
+
+const getProducts = async (req, res, next) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      category,
+      minPrice,
+      maxPrice,
+      search,
+      availability,
+    } = req.query;
+
+    const skip = (page - 1) * limit;
+    const take = parseInt(limit);
+
+    const where = {};
+
+    if (category) {
+      where.categoryId = category;
+    }
+
+    if (minPrice || maxPrice) {
+      where.price = {};
+      if (minPrice) where.price.gte = parseFloat(minPrice);
+      if (maxPrice) where.price.lte = parseFloat(maxPrice);
+    }
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    if (availability === "in_stock") {
+      where.stock = { gt: 0 };
+    }
+
+    const products = await prisma.product.findMany({
+      where,
+      skip,
+      take,
+      include: { category: true },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const total = await prisma.product.count({ where });
+
+    res.json({
+      products,
+      pagination: {
+        page: parseInt(page),
+        limit: take,
+        total,
+        pages: Math.ceil(total / take),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getProduct = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: { category: true, reviews: true },
+    });
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.json(product);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createProduct = async (req, res, next) => {
+  try {
+    const product = await prisma.product.create({
+      data: req.body,
+      include: { category: true },
+    });
+
+    res.status(201).json(product);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateProduct = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const product = await prisma.product.update({
+      where: { id },
+      data: req.body,
+      include: { category: true },
+    });
+
+    res.json(product);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteProduct = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.product.delete({ where: { id } });
+
+    res.json({ message: "Product deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  getProducts,
+  getProduct,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+};

@@ -1,0 +1,39 @@
+{
+  "name": "online-shop",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:seed": "node prisma/seed.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "E-commerce backend API built with Node.js, Express, PostgreSQL, and Prisma",
+  "dependencies": {
+    "express": "^4.18.2",
+    "@prisma/client": "^5.8.0",
+    "jsonwebtoken": "^9.0.0",
+    "bcryptjs": "^2.4.3",
+    "redis": "^4.6.0",
+    "dotenv": "^16.3.1",
+    "joi": "^17.11.0",
+    "helmet": "^7.0.0",
+    "express-rate-limit": "^7.1.5",
+    "cors": "^2.8.5",
+    "morgan": "^1.10.0",
+    "compression": "^1.7.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "prisma": "^5.8.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
