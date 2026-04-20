@@ -1,24 +1,108 @@
 # online-shop
 
-## Swagger Documentation
+A full-featured e-commerce API built with Node.js, Express, PostgreSQL, and Redis.
 
-- Local Swagger UI: `http://localhost:5002/api/docs`
+## Quick Start with Docker
 
-## Local development with Docker
+### Prerequisites
+- Docker and Docker Compose installed on your system
 
-For local development while Docker is running, use host services:
-
-- `DATABASE_URL=postgresql://admin:123456@127.0.0.1:5432/shopdb`
-- `REDIS_URL=redis://127.0.0.1:6379`
-- `PORT=5002`
-
-Then start the app with:
+### Run the Project
 
 ```bash
-DATABASE_URL='postgresql://admin:123456@127.0.0.1:5432/shopdb' \
-REDIS_URL='redis://127.0.0.1:6379' \
-PORT=5002 npm run dev
+# Clone the repository
+git clone <repository-url>
+cd online-shop
+
+# Start all services (PostgreSQL, Redis, and Node.js app)
+docker-compose up -d
+
+# Check if everything is running
+docker-compose ps
 ```
+
+The application will be available at:
+- **API Base URL**: `http://localhost:5000`
+- **Swagger UI**: `http://localhost:5000/api/docs`
+- **Health Check**: `http://localhost:5000/api/health`
+
+### Useful Docker Commands
+
+```bash
+# View application logs
+docker logs -f shop_app
+
+# View all container logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (reset database)
+docker-compose down -v
+
+# Rebuild images after code changes
+docker-compose build
+
+# Restart a specific service
+docker-compose restart app
+```
+
+## Local Development (Without Docker)
+
+### Prerequisites
+- Node.js 20+
+- PostgreSQL 16
+- Redis 7
+
+### Setup
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Create `.env` file with:
+```
+DATABASE_URL=postgresql://admin:123456@127.0.0.1:5432/shopdb
+REDIS_URL=redis://127.0.0.1:6379
+NODE_ENV=development
+PORT=5002
+JWT_SECRET=your-secret-key
+SALT_ROUNDS=12
+STRIPE_SECRET_KEY=your-stripe-key
+```
+
+3. Setup database:
+```bash
+npx prisma migrate dev
+npx prisma db seed
+```
+
+4. Start development server:
+```bash
+npm run dev
+```
+
+## API Documentation
+
+Full API documentation is available via Swagger/OpenAPI:
+- **Docker**: `http://localhost:5000/api/docs`
+- **Local Dev**: `http://localhost:5002/api/docs`
+
+### Available Endpoints
+
+- **Health**: `GET /api/health`
+- **Auth**: `/api/auth/*`
+- **Users**: `/api/users/*`
+- **Products**: `/api/products/*`
+- **Categories**: `/api/categories/*`
+- **Cart**: `/api/cart/*`
+- **Orders**: `/api/orders/*`
+- **Payments**: `/api/payments/*`
+- **Coupons**: `/api/coupons/*`
+- **Reviews**: `/api/reviews/*`
+- **Admin**: `/api/admin/*`
 
 ## Getting started
 
