@@ -7,6 +7,8 @@ const compression = require("compression");
 const rateLimit = require("express-rate-limit");
 const { PrismaClient } = require("@prisma/client");
 const redis = require("redis");
+const swaggerUi = require("swagger-ui-express");
+const swaggerDocument = require("./swagger");
 
 const app = express();
 
@@ -24,6 +26,9 @@ app.use(compression());
 app.use(morgan("combined"));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+// Swagger UI for API documentation
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Rate limiting
 const limiter = rateLimit({
