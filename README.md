@@ -4,6 +4,22 @@
 
 - Local Swagger UI: `http://localhost:5002/api/docs`
 
+## Local development with Docker
+
+For local development while Docker is running, use host services:
+
+- `DATABASE_URL=postgresql://admin:123456@127.0.0.1:5432/shopdb`
+- `REDIS_URL=redis://127.0.0.1:6379`
+- `PORT=5002`
+
+Then start the app with:
+
+```bash
+DATABASE_URL='postgresql://admin:123456@127.0.0.1:5432/shopdb' \
+REDIS_URL='redis://127.0.0.1:6379' \
+PORT=5002 npm run dev
+```
+
 ## Getting started
 
 To make it easy for you to get started with GitLab, here's a list of recommended next steps.

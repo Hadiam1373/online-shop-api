@@ -101,6 +101,17 @@ module.exports = {
           code: { type: "string" },
         },
       },
+      CreateCoupon: {
+        type: "object",
+        required: ["code", "discountType", "discountValue"],
+        properties: {
+          code: { type: "string" },
+          discountType: { type: "string", enum: ["PERCENTAGE", "FIXED"] },
+          discountValue: { type: "number", format: "float" },
+          expirationDate: { type: "string", format: "date-time" },
+          usageLimit: { type: "integer", format: "int32" },
+        },
+      },
       OrderCreate: {
         type: "object",
         properties: {
