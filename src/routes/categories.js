@@ -1,8 +1,8 @@
-const express = require('express');
-const { authenticate, authorize } = require('../middlewares/auth');
-const { validate } = require('../middlewares/validation');
-const Joi = require('joi');
-const categoryController = require('../controllers/categories');
+const express = require("express");
+const { authenticate, authorize } = require("../middlewares/auth");
+const validate = require("../middlewares/validation");
+const Joi = require("joi");
+const categoryController = require("../controllers/categories");
 
 const router = express.Router();
 
@@ -20,31 +20,31 @@ const updateCategorySchema = Joi.object({
 });
 
 // Routes
-router.get('/tree', categoryController.getCategoryTree);
-router.get('/', categoryController.getCategories);
-router.get('/:id', categoryController.getCategoryById);
+router.get("/tree", categoryController.getCategoryTree);
+router.get("/", categoryController.getCategories);
+router.get("/:id", categoryController.getCategoryById);
 
 router.post(
-  '/',
+  "/",
   authenticate,
-  authorize(['ADMIN']),
+  authorize(["ADMIN"]),
   validate(createCategorySchema),
-  categoryController.createCategory
+  categoryController.createCategory,
 );
 
 router.put(
-  '/:id',
+  "/:id",
   authenticate,
-  authorize(['ADMIN']),
+  authorize(["ADMIN"]),
   validate(updateCategorySchema),
-  categoryController.updateCategory
+  categoryController.updateCategory,
 );
 
 router.delete(
-  '/:id',
+  "/:id",
   authenticate,
-  authorize(['ADMIN']),
-  categoryController.deleteCategory
+  authorize(["ADMIN"]),
+  categoryController.deleteCategory,
 );
 
 module.exports = router;

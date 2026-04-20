@@ -1,8 +1,8 @@
-const express = require('express');
-const { authenticate, authorize } = require('../middlewares/auth');
-const { validate } = require('../middlewares/validation');
-const Joi = require('joi');
-const reviewController = require('../controllers/reviews');
+const express = require("express");
+const { authenticate, authorize } = require("../middlewares/auth");
+const validate = require("../middlewares/validation");
+const Joi = require("joi");
+const reviewController = require("../controllers/reviews");
 
 const router = express.Router();
 
@@ -23,20 +23,33 @@ const moderateReviewSchema = Joi.object({
 });
 
 // Public routes
-router.get('/product/:productId', reviewController.getProductReviews);
-router.get('/:id', reviewController.getReviewById);
+router.get("/product/:productId", reviewController.getProductReviews);
+router.get("/:id", reviewController.getReviewById);
 
 // Authentication required
 router.use(authenticate);
 
-router.get('/', reviewController.getUserReviews);
-router.post('/', validate(createReviewSchema), reviewController.createReview);
-router.put('/:id', validate(updateReviewSchema), reviewController.updateReview);
-router.delete('/:id', reviewController.deleteReview);
+router.get("/", reviewController.getUserReviews);
+router.post("/", validate(createReviewSchema), reviewController.createReview);
+router.put("/:id", validate(updateReviewSchema), reviewController.updateReview);
+router.delete("/:id", reviewController.deleteReview);
 
 // Admin routes
-router.get('/admin/stats', authorize(['ADMIN']), reviewController.getReviewStats);
-router.get('/admin/pending', authorize(['ADMIN']), reviewController.getPendingReviews);
-router.post('/:id/moderate', authorize(['ADMIN']), validate(moderateReviewSchema), reviewController.moderateReview);
+router.get(
+  "/admin/stats",
+  authorize(["ADMIN"]),
+  reviewController.getReviewStats,
+);
+router.get(
+  "/admin/pending",
+  authorize(["ADMIN"]),
+  reviewController.getPendingReviews,
+);
+router.post(
+  "/:id/moderate",
+  authorize(["ADMIN"]),
+  validate(moderateReviewSchema),
+  reviewController.moderateReview,
+);
 
 module.exports = router;
