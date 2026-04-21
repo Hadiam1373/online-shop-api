@@ -85,6 +85,16 @@ const getProduct = async (req, res, next) => {
 
 const createProduct = async (req, res, next) => {
   try {
+    // Check if category exists
+    const category = await prisma.category.findUnique({
+      where: { id: req.body.categoryId },
+    });
+    if (!category) {
+      return res
+        .status(400)
+        .json({ message: "Invalid categoryId: Category does not exist" });
+    }
+
     const product = await prisma.product.create({
       data: req.body,
       include: { category: true },
