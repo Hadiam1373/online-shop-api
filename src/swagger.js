@@ -42,10 +42,12 @@ module.exports = {
       },
       AuthRegister: {
         type: "object",
-        required: ["email", "password"],
+        required: ["phone"],
         properties: {
+          phone: { type: "string", example: "989123456789" },
           email: { type: "string", format: "email" },
           password: { type: "string", example: "password123" },
+          address: { type: "string" },
         },
       },
       AuthLogin: {
@@ -54,6 +56,31 @@ module.exports = {
         properties: {
           email: { type: "string", format: "email" },
           password: { type: "string", example: "password123" },
+        },
+      },
+      OtpRequest: {
+        type: "object",
+        required: ["phone"],
+        properties: {
+          phone: { type: "string", example: "989123456789" },
+        },
+      },
+      OtpVerify: {
+        type: "object",
+        required: ["phone", "code"],
+        properties: {
+          phone: { type: "string", example: "989123456789" },
+          code: { type: "string", example: "123456" },
+        },
+      },
+      CompleteRegistration: {
+        type: "object",
+        required: ["phone"],
+        properties: {
+          phone: { type: "string", example: "989123456789" },
+          email: { type: "string", format: "email" },
+          password: { type: "string", example: "password123" },
+          address: { type: "string" },
         },
       },
       RefreshToken: {
@@ -220,6 +247,126 @@ module.exports = {
         responses: {
           200: { description: "Token refreshed" },
           400: { description: "Validation failed" },
+        },
+      },
+    },
+    "/api/auth/request-otp": {
+      post: {
+        tags: ["Auth"],
+        summary: "درخواست OTP برای شماره تلفن",
+        description: "ارسال کد OTP 6 رقمی به شماره تلفن",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/OtpRequest" },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: "OTP ارسال شد",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string" },
+                    phone: { type: "string" },
+                    otp: {
+                      type: "string",
+                      description: "فقط برای تست - در production حذف شود",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: { description: "خطای validation" },
+        },
+      },
+    },
+    "/api/auth/verify-otp": {
+      post: {
+        tags: ["Auth"],
+        summary: "تایید OTP و ورود",
+        description: "تایید کد OTP و دریافت access token",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/OtpVerify" },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: "ورود موفق",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string" },
+                    accessToken: { type: "string" },
+                    refreshToken: { type: "string" },
+                    user: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string" },
+                        phone: { type: "string" },
+                        email: { type: "string" },
+                        address: { type: "string" },
+                        role: { type: "string" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: { description: "کد OTP نادرست یا منقضی" },
+        },
+      },
+    },
+    "/api/auth/complete-registration": {
+      post: {
+        tags: ["Auth"],
+        summary: "تکمیل ثبت‌نام",
+        description: "اضافه کردن ایمیل، آدرس و رمز عبور بعد از تایید OTP",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CompleteRegistration" },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: "ثبت‌نام تکمیل شد",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string" },
+                    user: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string" },
+                        phone: { type: "string" },
+                        email: { type: "string" },
+                        address: { type: "string" },
+                        role: { type: "string" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          404: { description: "کاربر یافت نشد" },
         },
       },
     },

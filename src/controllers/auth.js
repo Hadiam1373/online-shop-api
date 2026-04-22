@@ -5,26 +5,49 @@ const {
   generateRefreshToken,
   verifyRefreshToken,
 } = require("../utils/jwt");
+const {
+  userExists,
+  getUserByEmail,
+  phoneExists,
+  getUserByPhone,
+  requestOtp: requestOtpService,
+  verifyOtp: verifyOtpService,
+  createUserWithPhone,
+} = require("../services/auth");
 
 const prisma = new PrismaClient();
 
+// Traditional email + password registration (optional)
 const register = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, phone, address } = req.body;
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return res.status(409).json({ message: "User already exists" });
+    // Check if phone already exists
+    if (await phoneExists(phone)) {
+      return res
+        .status(409)
+        .json({ message: "Phone number already registered" });
     }
 
-    const hashedPassword = await hashPassword(password);
+    // Check if email already exists (if provided)
+    if (email && (await userExists(email))) {
+      return res.status(409).json({ message: "Email already exists" });
+    }
+
+    const hashedPassword = password ? await hashPassword(password) : null;
 
     const user = await prisma.user.create({
-      data: { email, password: hashedPassword },
+      data: {
+        email,
+        password: hashedPassword,
+        phone,
+        address,
+      },
     });
 
     const accessToken = generateAccessToken({
       id: user.id,
+      phone: user.phone,
       email: user.email,
       role: user.role,
     });
@@ -42,18 +65,25 @@ const register = async (req, res, next) => {
       message: "User registered successfully",
       accessToken,
       refreshToken,
-      user: { id: user.id, email: user.email, role: user.role },
+      user: {
+        id: user.id,
+        phone: user.phone,
+        email: user.email,
+        address: user.address,
+        role: user.role,
+      },
     });
   } catch (error) {
     next(error);
   }
 };
 
+// Login with email and password (legacy support)
 const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await getUserByEmail(email);
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
@@ -65,6 +95,7 @@ const login = async (req, res, next) => {
 
     const accessToken = generateAccessToken({
       id: user.id,
+      phone: user.phone,
       email: user.email,
       role: user.role,
     });
@@ -82,13 +113,116 @@ const login = async (req, res, next) => {
       message: "Login successful",
       accessToken,
       refreshToken,
-      user: { id: user.id, email: user.email, role: user.role },
+      user: {
+        id: user.id,
+        phone: user.phone,
+        email: user.email,
+        address: user.address,
+        role: user.role,
+      },
     });
   } catch (error) {
     next(error);
   }
 };
 
+// Request OTP for phone-based login
+const requestOtp = async (req, res, next) => {
+  try {
+    const { phone } = req.body;
+
+    const result = await requestOtpService(phone);
+
+    // In production, send OTP via SMS/Twilio
+    // For now, we return it in response for testing
+    res.status(200).json({
+      message: "OTP sent to your phone",
+      phone,
+      otp: result.otp, // Remove in production
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Verify OTP and login
+const verifyOtp = async (req, res, next) => {
+  try {
+    const { phone, code } = req.body;
+
+    const result = await verifyOtpService(phone, code);
+    const user = result.user;
+
+    const accessToken = generateAccessToken({
+      id: user.id,
+      phone: user.phone,
+      email: user.email,
+      role: user.role,
+    });
+    const refreshToken = generateRefreshToken({ id: user.id });
+
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: user.id,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    res.json({
+      message: "Login successful",
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        email: user.email,
+        address: user.address,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Complete registration after OTP verification
+const completeRegistration = async (req, res, next) => {
+  try {
+    const { phone, email, address, password } = req.body;
+
+    const user = await getUserByPhone(phone);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const hashedPassword = password ? await hashPassword(password) : null;
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        email,
+        address,
+        password: hashedPassword,
+      },
+    });
+
+    res.json({
+      message: "Registration completed successfully",
+      user: {
+        id: updatedUser.id,
+        phone: updatedUser.phone,
+        email: updatedUser.email,
+        address: updatedUser.address,
+        role: updatedUser.role,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Refresh token
 const refreshToken = async (req, res, next) => {
   try {
     const { refreshToken: token } = req.body;
@@ -105,24 +239,17 @@ const refreshToken = async (req, res, next) => {
     }
 
     const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+
     const newAccessToken = generateAccessToken({
       id: user.id,
+      phone: user.phone,
       email: user.email,
       role: user.role,
     });
-    const newRefreshToken = generateRefreshToken({ id: user.id });
-
-    await prisma.refreshToken.update({
-      where: { token },
-      data: {
-        token: newRefreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      },
-    });
 
     res.json({
+      message: "Access token refreshed",
       accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
     });
   } catch (error) {
     next(error);
@@ -132,5 +259,8 @@ const refreshToken = async (req, res, next) => {
 module.exports = {
   register,
   login,
+  requestOtp,
+  verifyOtp,
+  completeRegistration,
   refreshToken,
 };
