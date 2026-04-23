@@ -7,8 +7,12 @@ module.exports = {
   },
   servers: [
     {
-      url: "http://localhost:12000",
-      description: "Local development server",
+      url: process.env.API_URL || "http://localhost:5000",
+      description: "Development server",
+    },
+    {
+      url: "http://127.0.0.1:5000",
+      description: "Local server (127.0.0.1)",
     },
   ],
   tags: [
