@@ -208,3 +208,5 @@ If you have run out of energy or time for your project, put a note at the top of
 
 #ِDocker 
 http://localhost:5002/api/docs
+َAdmin username = admin@example.com
+Admin password = admin123

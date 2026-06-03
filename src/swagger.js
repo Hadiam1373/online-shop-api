@@ -87,6 +87,23 @@ module.exports = {
           address: { type: "string" },
         },
       },
+      PasswordResetRequest: {
+        type: "object",
+        required: ["phone"],
+        properties: {
+          phone: { type: "string", example: "989123456789" },
+        },
+      },
+      PasswordResetConfirm: {
+        type: "object",
+        required: ["phone", "code", "newPassword", "confirmPassword"],
+        properties: {
+          phone: { type: "string", example: "989123456789" },
+          code: { type: "string", example: "123456" },
+          newPassword: { type: "string", example: "newPassword123" },
+          confirmPassword: { type: "string", example: "newPassword123" },
+        },
+      },
       RefreshToken: {
         type: "object",
         required: ["refreshToken"],
@@ -370,6 +387,62 @@ module.exports = {
               },
             },
           },
+          404: { description: "کاربر یافت نشد" },
+        },
+      },
+    },
+    "/api/auth/request-password-reset": {
+      post: {
+        tags: ["Auth"],
+        summary: "درخواست بازیابی رمز با OTP",
+        description: "ارسال کد OTP برای بازنشانی رمز به شماره تلفن",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/PasswordResetRequest" },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: "OTP ارسال شد",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string" },
+                    phone: { type: "string" },
+                    otp: {
+                      type: "string",
+                      description: "فقط برای تست - در production حذف شود",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: { description: "خطای validation" },
+        },
+      },
+    },
+    "/api/auth/reset-password": {
+      post: {
+        tags: ["Auth"],
+        summary: "بازنشانی رمز با OTP",
+        description: "تایید کد OTP و تنظیم رمز جدید برای کاربر",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/PasswordResetConfirm" },
+            },
+          },
+        },
+        responses: {
+          200: { description: "رمز با موفقیت بازنشانی شد" },
+          400: { description: "خطای validation یا کد نادرست" },
           404: { description: "کاربر یافت نشد" },
         },
       },
