@@ -5,6 +5,7 @@ A full-featured e-commerce API built with Node.js, Express, PostgreSQL, and Redi
 ## Quick Start with Docker
 
 ### Prerequisites
+
 - Docker and Docker Compose installed on your system
 
 ### Run the Project
@@ -22,6 +23,7 @@ docker-compose ps
 ```
 
 The application will be available at:
+
 - **API Base URL**: `http://localhost:5000`
 - **Swagger UI**: `http://localhost:5000/api/docs`
 - **Health Check**: `http://localhost:5000/api/health`
@@ -51,6 +53,7 @@ docker-compose restart app
 ## Local Development (Without Docker)
 
 ### Prerequisites
+
 - Node.js 20+
 - PostgreSQL 16
 - Redis 7
@@ -58,11 +61,13 @@ docker-compose restart app
 ### Setup
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Create `.env` file with:
+
 ```
 DATABASE_URL=postgresql://admin:123456@127.0.0.1:5432/shopdb
 REDIS_URL=redis://127.0.0.1:6379
@@ -74,12 +79,14 @@ STRIPE_SECRET_KEY=your-stripe-key
 ```
 
 3. Setup database:
+
 ```bash
 npx prisma migrate dev
 npx prisma db seed
 ```
 
 4. Start development server:
+
 ```bash
 npm run dev
 ```
@@ -87,6 +94,7 @@ npm run dev
 ## API Documentation
 
 Full API documentation is available via Swagger/OpenAPI:
+
 - **Docker**: `http://localhost:5000/api/docs`
 - **Local Dev**: `http://localhost:5002/api/docs`
 
@@ -206,7 +214,10 @@ For open source projects, say how it is licensed.
 
 If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
 
-#ِDocker 
+#ِDocker
 http://localhost:5002/api/docs
-َAdmin username = admin@example.com
+َAdmin username = admin@example.com || 0912000000
 Admin password = admin123
+
+npx prisma studio
+$ docker-compose exec app node scripts/seed-samples.js
