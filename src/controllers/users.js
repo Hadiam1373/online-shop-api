@@ -1,5 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
+const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcryptjs");
 const prisma = new PrismaClient();
 
 // Get current user profile
@@ -17,7 +17,7 @@ exports.getProfile = async (req, res, next) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: "User not found" });
     }
 
     // Remove password from response
@@ -33,7 +33,7 @@ exports.getProfile = async (req, res, next) => {
 exports.updateProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { email } = req.body;
+    const { email, address } = req.body;
 
     // Check if email is already taken
     if (email) {
@@ -42,7 +42,7 @@ exports.updateProfile = async (req, res, next) => {
       });
 
       if (existing && existing.id !== userId) {
-        return res.status(400).json({ error: 'Email already in use' });
+        return res.status(400).json({ error: "Email already in use" });
       }
     }
 
@@ -50,10 +50,12 @@ exports.updateProfile = async (req, res, next) => {
       where: { id: userId },
       data: {
         email: email || undefined,
+        address: address || undefined,
       },
       select: {
         id: true,
         email: true,
+        address: true,
         role: true,
         createdAt: true,
         updatedAt: true,
@@ -73,15 +75,19 @@ exports.changePassword = async (req, res, next) => {
     const { currentPassword, newPassword, confirmPassword } = req.body;
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      return res.status(400).json({ error: 'All password fields are required' });
+      return res
+        .status(400)
+        .json({ error: "All password fields are required" });
     }
 
     if (newPassword !== confirmPassword) {
-      return res.status(400).json({ error: 'New passwords do not match' });
+      return res.status(400).json({ error: "New passwords do not match" });
     }
 
     if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 6 characters" });
     }
 
     // Get user
@@ -90,13 +96,16 @@ exports.changePassword = async (req, res, next) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: "User not found" });
     }
 
     // Verify current password
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password,
+    );
     if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Current password is incorrect' });
+      return res.status(401).json({ error: "Current password is incorrect" });
     }
 
     // Hash new password
@@ -108,7 +117,7 @@ exports.changePassword = async (req, res, next) => {
       data: { password: hashedPassword },
     });
 
-    res.json({ message: 'Password changed successfully' });
+    res.json({ message: "Password changed successfully" });
   } catch (error) {
     next(error);
   }
@@ -133,11 +142,13 @@ exports.getOrderHistory = async (req, res, next) => {
         take: parseInt(limit),
         include: {
           orderItems: {
-            include: { product: { select: { id: true, name: true, images: true } } },
+            include: {
+              product: { select: { id: true, name: true, images: true } },
+            },
           },
           payment: true,
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       }),
       prisma.order.count({ where }),
     ]);
@@ -171,7 +182,7 @@ exports.getMyReviews = async (req, res, next) => {
         include: {
           product: { select: { id: true, name: true, images: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       }),
       prisma.review.count({ where: { userId } }),
     ]);
@@ -198,7 +209,7 @@ exports.getFavorites = async (req, res, next) => {
     // This endpoint would require a Favorite/Wishlist model
     // For now, return a message
     res.json({
-      message: 'Wishlist feature requires additional schema setup',
+      message: "Wishlist feature requires additional schema setup",
       userId,
     });
   } catch (error) {
@@ -214,7 +225,7 @@ exports.addToWishlist = async (req, res, next) => {
 
     // This endpoint would require a Favorite/Wishlist model
     res.json({
-      message: 'Wishlist feature requires additional schema setup',
+      message: "Wishlist feature requires additional schema setup",
       userId,
       productId,
     });
@@ -228,22 +239,23 @@ exports.getUserStats = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    const [totalOrders, totalSpent, averageOrderValue, totalReviews] = await Promise.all([
-      prisma.order.count({ where: { userId } }),
-      prisma.order.aggregate({
-        _sum: { total: true },
-        where: { userId },
-      }),
-      prisma.order.aggregate({
-        _avg: { total: true },
-        where: { userId },
-      }),
-      prisma.review.count({ where: { userId } }),
-    ]);
+    const [totalOrders, totalSpent, averageOrderValue, totalReviews] =
+      await Promise.all([
+        prisma.order.count({ where: { userId } }),
+        prisma.order.aggregate({
+          _sum: { total: true },
+          where: { userId },
+        }),
+        prisma.order.aggregate({
+          _avg: { total: true },
+          where: { userId },
+        }),
+        prisma.review.count({ where: { userId } }),
+      ]);
 
     const latestOrder = await prisma.order.findFirst({
       where: { userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       select: { createdAt: true, status: true },
     });
 
@@ -267,7 +279,9 @@ exports.deleteAccount = async (req, res, next) => {
     const { password } = req.body;
 
     if (!password) {
-      return res.status(400).json({ error: 'Password is required to delete account' });
+      return res
+        .status(400)
+        .json({ error: "Password is required to delete account" });
     }
 
     // Get user
@@ -276,13 +290,13 @@ exports.deleteAccount = async (req, res, next) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: "User not found" });
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Password is incorrect' });
+      return res.status(401).json({ error: "Password is incorrect" });
     }
 
     // Delete user (this will cascade delete dependent records or soft delete)
@@ -290,7 +304,7 @@ exports.deleteAccount = async (req, res, next) => {
       where: { id: userId },
     });
 
-    res.json({ message: 'Account deleted successfully' });
+    res.json({ message: "Account deleted successfully" });
   } catch (error) {
     next(error);
   }

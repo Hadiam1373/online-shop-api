@@ -9,6 +9,7 @@ const router = express.Router();
 // Validation schemas
 const updateProfileSchema = Joi.object({
   email: Joi.string().email().optional(),
+  address: Joi.string().optional(),
 });
 
 const changePasswordSchema = Joi.object({
