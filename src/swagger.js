@@ -467,6 +467,7 @@ module.exports = {
                 type: "object",
                 properties: {
                   email: { type: "string", format: "email" },
+                  address: { type: "string", example: "Tehran, Valiasr St." },
                 },
               },
             },
@@ -1331,6 +1332,180 @@ module.exports = {
         summary: "Get customer insights",
         security: [{ bearerAuth: [] }],
         responses: { 200: { description: "Customer insights returned" } },
+      },
+    },
+    "/api/wishlist": {
+      get: {
+        tags: ["Wishlist"],
+        summary: "Get user's wishlist",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "page",
+            in: "query",
+            schema: { type: "integer", default: 1 },
+          },
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", default: 10 },
+          },
+        ],
+        responses: {
+          200: {
+            description: "Wishlist retrieved successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          id: { type: "string" },
+                          product: {
+                            type: "object",
+                            properties: {
+                              id: { type: "string" },
+                              name: { type: "string" },
+                              description: { type: "string" },
+                              price: { type: "number" },
+                              discountPrice: { type: "number" },
+                              stock: { type: "integer" },
+                              images: { type: "array" },
+                              categoryId: { type: "string" },
+                              attributes: { type: "object" },
+                            },
+                          },
+                          addedAt: { type: "string", format: "date-time" },
+                        },
+                      },
+                    },
+                    pagination: {
+                      type: "object",
+                      properties: {
+                        page: { type: "integer" },
+                        limit: { type: "integer" },
+                        total: { type: "integer" },
+                        pages: { type: "integer" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: { description: "Unauthorized" },
+        },
+      },
+      post: {
+        tags: ["Wishlist"],
+        summary: "Add product to wishlist",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  productId: { type: "string" },
+                },
+                required: ["productId"],
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: "Product added to wishlist" },
+          400: { description: "Product ID is required" },
+          404: { description: "Product not found" },
+          409: { description: "Product already in wishlist" },
+          401: { description: "Unauthorized" },
+        },
+      },
+      delete: {
+        tags: ["Wishlist"],
+        summary: "Remove product from wishlist",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  productId: { type: "string" },
+                },
+                required: ["productId"],
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Product removed from wishlist" },
+          404: { description: "Product not in wishlist" },
+          401: { description: "Unauthorized" },
+        },
+      },
+    },
+    "/api/wishlist/check": {
+      get: {
+        tags: ["Wishlist"],
+        summary: "Check if product is in wishlist",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "productId",
+            in: "query",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          200: {
+            description: "Product wishlist status",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    isInWishlist: { type: "boolean" },
+                    productId: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          400: { description: "Product ID is required" },
+          401: { description: "Unauthorized" },
+        },
+      },
+    },
+    "/api/wishlist/clear": {
+      delete: {
+        tags: ["Wishlist"],
+        summary: "Clear entire wishlist",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: "Wishlist cleared",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string" },
+                    deletedCount: { type: "integer" },
+                  },
+                },
+              },
+            },
+          },
+          401: { description: "Unauthorized" },
+        },
       },
     },
   },
