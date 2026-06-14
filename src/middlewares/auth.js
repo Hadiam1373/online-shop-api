@@ -28,7 +28,11 @@ const authorize = (...roles) => {
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    if (!roles.includes(req.user.role)) {
+    // support both authorize('ADMIN') and authorize(['ADMIN', 'OPERATOR'])
+    const allowedRoles =
+      roles.length === 1 && Array.isArray(roles[0]) ? roles[0] : roles;
+
+    if (!allowedRoles.includes(req.user.role)) {
       return res
         .status(403)
         .json({ message: "Access denied. Insufficient permissions." });
