@@ -575,6 +575,77 @@ module.exports = {
       get: {
         tags: ["Products"],
         summary: "Get all products",
+        parameters: [
+          {
+            name: "page",
+            in: "query",
+            schema: { type: "integer", default: 1 },
+            description: "Page number for pagination",
+          },
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", default: 10 },
+            description: "Number of products per page",
+          },
+          {
+            name: "category",
+            in: "query",
+            schema: { type: "string" },
+            description: "Filter by category ID",
+          },
+          {
+            name: "minPrice",
+            in: "query",
+            schema: { type: "number" },
+            description: "Minimum product price",
+          },
+          {
+            name: "maxPrice",
+            in: "query",
+            schema: { type: "number" },
+            description: "Maximum product price",
+          },
+          {
+            name: "search",
+            in: "query",
+            schema: { type: "string" },
+            description: "Search product name or description",
+          },
+          {
+            name: "availability",
+            in: "query",
+            schema: { type: "string", enum: ["in_stock", "out_of_stock"] },
+            description: "Filter by stock availability",
+          },
+          {
+            name: "hasDiscount",
+            in: "query",
+            schema: { type: "boolean" },
+            description: "Return only discounted products",
+          },
+          {
+            name: "sort",
+            in: "query",
+            schema: {
+              type: "string",
+              enum: [
+                "createdAt_desc",
+                "createdAt_asc",
+                "price_desc",
+                "price_asc",
+                "name_desc",
+                "name_asc",
+                "stock_desc",
+                "stock_asc",
+                "discount_desc",
+                "discount_asc",
+              ],
+              default: "createdAt_desc",
+            },
+            description: "Sort products by field and direction",
+          },
+        ],
         responses: { 200: { description: "Products returned" } },
       },
       post: {

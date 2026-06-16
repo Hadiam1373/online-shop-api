@@ -12,10 +12,12 @@ const getProducts = async (req, res, next) => {
       maxPrice,
       search,
       availability,
+      hasDiscount,
+      sort,
     } = req.query;
 
-    const skip = (page - 1) * limit;
-    const take = parseInt(limit);
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = Math.max(1, Math.min(parseInt(limit), 100));
 
     const where = {};
 
@@ -29,6 +31,10 @@ const getProducts = async (req, res, next) => {
       if (maxPrice) where.price.lte = parseFloat(maxPrice);
     }
 
+    if (hasDiscount === "true" || hasDiscount === "1") {
+      where.discountPrice = { not: null };
+    }
+
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
@@ -38,6 +44,42 @@ const getProducts = async (req, res, next) => {
 
     if (availability === "in_stock") {
       where.stock = { gt: 0 };
+    } else if (availability === "out_of_stock") {
+      where.stock = { equals: 0 };
+    }
+
+    let orderBy = { createdAt: "desc" };
+    switch (sort) {
+      case "price_asc":
+        orderBy = { price: "asc" };
+        break;
+      case "price_desc":
+        orderBy = { price: "desc" };
+        break;
+      case "name_asc":
+        orderBy = { name: "asc" };
+        break;
+      case "name_desc":
+        orderBy = { name: "desc" };
+        break;
+      case "stock_asc":
+        orderBy = { stock: "asc" };
+        break;
+      case "stock_desc":
+        orderBy = { stock: "desc" };
+        break;
+      case "discount_asc":
+        orderBy = { discountPrice: "asc" };
+        break;
+      case "discount_desc":
+        orderBy = { discountPrice: "desc" };
+        break;
+      case "createdAt_asc":
+        orderBy = { createdAt: "asc" };
+        break;
+      case "createdAt_desc":
+      default:
+        orderBy = { createdAt: "desc" };
     }
 
     const products = await prisma.product.findMany({
@@ -45,7 +87,7 @@ const getProducts = async (req, res, next) => {
       skip,
       take,
       include: { category: true },
-      orderBy: { createdAt: "desc" },
+      orderBy,
     });
 
     const total = await prisma.product.count({ where });
