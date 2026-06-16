@@ -16,8 +16,15 @@ const getProducts = async (req, res, next) => {
       sort,
     } = req.query;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const take = Math.max(1, Math.min(parseInt(limit), 100));
+    const pageNumber = Number.parseInt(page, 10);
+    const limitNumber = Number.parseInt(limit, 10);
+    const currentPage =
+      Number.isFinite(pageNumber) && pageNumber > 0 ? pageNumber : 1;
+    const take =
+      Number.isFinite(limitNumber) && limitNumber > 0
+        ? Math.min(limitNumber, 100)
+        : 10;
+    const skip = (currentPage - 1) * take;
 
     const where = {};
 
@@ -95,7 +102,7 @@ const getProducts = async (req, res, next) => {
     res.json({
       products,
       pagination: {
-        page: parseInt(page),
+        page: currentPage,
         limit: take,
         total,
         pages: Math.ceil(total / take),
