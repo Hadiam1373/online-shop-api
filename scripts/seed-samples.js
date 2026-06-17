@@ -7,25 +7,25 @@ const prisma = new PrismaClient();
 async function main() {
   const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS || "12");
 
-  // 1) User
-  let user = await prisma.user
-    .findUnique({ where: { email: "admin@example.com" } })
-    .catch(() => null);
-  if (!user) {
-    const hashed = await bcrypt.hash("admin123", SALT_ROUNDS);
-    user = await prisma.user.create({
-      data: {
-        email: "admin@example.com",
-        password: hashed,
-        phone: "0912000000",
-        address: "Tehran, Iran",
-        role: "ADMIN",
-      },
-    });
-    console.log("Created user", user.email);
-  } else {
-    console.log("User exists:", user.email);
-  }
+  // 1) User (ensure via upsert on phone to avoid unique constraint errors)
+  const hashed = await bcrypt.hash("admin123", SALT_ROUNDS);
+  let user = await prisma.user.upsert({
+    where: { phone: "0912000000" },
+    update: {
+      email: "admin@example.com",
+      password: hashed,
+      address: "Tehran, Iran",
+      role: "ADMIN",
+    },
+    create: {
+      email: "admin@example.com",
+      password: hashed,
+      phone: "0912000000",
+      address: "Tehran, Iran",
+      role: "ADMIN",
+    },
+  });
+  console.log("Ensured admin user:", user.email || user.phone);
 
   // 2) OTP
   let otp = await prisma.otpCode.findFirst({ where: { phone: user.phone } });

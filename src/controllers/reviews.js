@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 // Create review
@@ -9,11 +9,15 @@ exports.createReview = async (req, res, next) => {
 
     // Validation
     if (!productId || !rating) {
-      return res.status(400).json({ error: 'Product ID and rating are required' });
+      return res
+        .status(400)
+        .json({ error: "Product ID and rating are required" });
     }
 
     if (rating < 1 || rating > 5 || !Number.isInteger(rating)) {
-      return res.status(400).json({ error: 'Rating must be an integer between 1 and 5' });
+      return res
+        .status(400)
+        .json({ error: "Rating must be an integer between 1 and 5" });
     }
 
     // Check if product exists
@@ -22,7 +26,7 @@ exports.createReview = async (req, res, next) => {
     });
 
     if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
+      return res.status(404).json({ error: "Product not found" });
     }
 
     // Check if user already reviewed this product
@@ -31,7 +35,9 @@ exports.createReview = async (req, res, next) => {
     });
 
     if (existing) {
-      return res.status(400).json({ error: 'You have already reviewed this product' });
+      return res
+        .status(400)
+        .json({ error: "You have already reviewed this product" });
     }
 
     // Check if user has purchased this product (optional - for now allow all users)
@@ -43,7 +49,7 @@ exports.createReview = async (req, res, next) => {
         productId,
         rating,
         comment: comment || null,
-        moderated: false, // Reviews need moderation by default
+        moderated: true, // Auto-approve reviews by default
       },
       include: {
         user: { select: { id: true, email: true } },
@@ -70,15 +76,15 @@ exports.getProductReviews = async (req, res, next) => {
     });
 
     if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
+      return res.status(404).json({ error: "Product not found" });
     }
 
     const where = { productId };
     // Only show moderated reviews to non-admin users
-    if (req.user?.role !== 'ADMIN') {
+    if (req.user?.role !== "ADMIN") {
       where.moderated = true;
     } else if (moderated !== undefined) {
-      where.moderated = moderated === 'true';
+      where.moderated = moderated === "true";
     }
 
     const [reviews, total] = await Promise.all([
@@ -89,15 +95,18 @@ exports.getProductReviews = async (req, res, next) => {
         include: {
           user: { select: { id: true, email: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       }),
       prisma.review.count({ where }),
     ]);
 
     // Calculate average rating
-    const avgRating = reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-      : 0;
+    const avgRating =
+      reviews.length > 0
+        ? (
+            reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+          ).toFixed(1)
+        : 0;
 
     res.json({
       data: reviews,
@@ -134,7 +143,7 @@ exports.getUserReviews = async (req, res, next) => {
         include: {
           product: { select: { id: true, name: true, images: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       }),
       prisma.review.count({ where: { userId } }),
     ]);
@@ -167,7 +176,7 @@ exports.getReviewById = async (req, res, next) => {
     });
 
     if (!review) {
-      return res.status(404).json({ error: 'Review not found' });
+      return res.status(404).json({ error: "Review not found" });
     }
 
     res.json(review);
@@ -188,15 +197,15 @@ exports.updateReview = async (req, res, next) => {
     });
 
     if (!review) {
-      return res.status(404).json({ error: 'Review not found' });
+      return res.status(404).json({ error: "Review not found" });
     }
 
-    if (review.userId !== userId && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Unauthorized' });
+    if (review.userId !== userId && req.user.role !== "ADMIN") {
+      return res.status(403).json({ error: "Unauthorized" });
     }
 
     if (rating && (rating < 1 || rating > 5)) {
-      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+      return res.status(400).json({ error: "Rating must be between 1 and 5" });
     }
 
     const updated = await prisma.review.update({
@@ -229,16 +238,16 @@ exports.deleteReview = async (req, res, next) => {
     });
 
     if (!review) {
-      return res.status(404).json({ error: 'Review not found' });
+      return res.status(404).json({ error: "Review not found" });
     }
 
-    if (review.userId !== userId && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Unauthorized' });
+    if (review.userId !== userId && req.user.role !== "ADMIN") {
+      return res.status(403).json({ error: "Unauthorized" });
     }
 
     await prisma.review.delete({ where: { id } });
 
-    res.json({ message: 'Review deleted successfully' });
+    res.json({ message: "Review deleted successfully" });
   } catch (error) {
     next(error);
   }
@@ -250,8 +259,10 @@ exports.moderateReview = async (req, res, next) => {
     const { id } = req.params;
     const { approve } = req.body;
 
-    if (typeof approve !== 'boolean') {
-      return res.status(400).json({ error: 'Approve field (boolean) is required' });
+    if (typeof approve !== "boolean") {
+      return res
+        .status(400)
+        .json({ error: "Approve field (boolean) is required" });
     }
 
     const review = await prisma.review.findUnique({
@@ -259,7 +270,7 @@ exports.moderateReview = async (req, res, next) => {
     });
 
     if (!review) {
-      return res.status(404).json({ error: 'Review not found' });
+      return res.status(404).json({ error: "Review not found" });
     }
 
     const updated = await prisma.review.update({
@@ -288,7 +299,7 @@ exports.getPendingReviews = async (req, res, next) => {
           user: { select: { id: true, email: true } },
           product: { select: { id: true, name: true } },
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: "asc" },
       }),
       prisma.review.count({ where: { moderated: false } }),
     ]);
@@ -310,17 +321,18 @@ exports.getPendingReviews = async (req, res, next) => {
 // Get review statistics
 exports.getReviewStats = async (req, res, next) => {
   try {
-    const [totalReviews, moderatedReviews, pendingReviews, averageRating] = await Promise.all([
-      prisma.review.count(),
-      prisma.review.count({ where: { moderated: true } }),
-      prisma.review.count({ where: { moderated: false } }),
-      prisma.review.aggregate({
-        _avg: { rating: true },
-      }),
-    ]);
+    const [totalReviews, moderatedReviews, pendingReviews, averageRating] =
+      await Promise.all([
+        prisma.review.count(),
+        prisma.review.count({ where: { moderated: true } }),
+        prisma.review.count({ where: { moderated: false } }),
+        prisma.review.aggregate({
+          _avg: { rating: true },
+        }),
+      ]);
 
     const ratingDistribution = await prisma.review.groupBy({
-      by: ['rating'],
+      by: ["rating"],
       _count: true,
       where: { moderated: true },
     });
@@ -329,7 +341,7 @@ exports.getReviewStats = async (req, res, next) => {
     for (let i = 1; i <= 5; i++) {
       distribution[i] = 0;
     }
-    ratingDistribution.forEach(item => {
+    ratingDistribution.forEach((item) => {
       distribution[item.rating] = item._count;
     });
 

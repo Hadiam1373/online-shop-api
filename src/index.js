@@ -80,12 +80,14 @@ app.use(express.urlencoded({ extended: true }));
 // Swagger UI for API documentation
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-});
-app.use(limiter);
+// Rate limiting - disabled in development, enabled in production
+if (process.env.NODE_ENV === "production") {
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+  });
+  app.use(limiter);
+}
 
 // Health check endpoint (before protected routes)
 app.get("/api/health", async (req, res) => {
