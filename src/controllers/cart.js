@@ -30,7 +30,22 @@ exports.getCart = async (req, res, next) => {
       // Create empty cart if doesn't exist
       cart = await prisma.cart.create({
         data: { userId },
-        include: { cartItems: true },
+        include: {
+          cartItems: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  discountPrice: true,
+                  images: true,
+                  stock: true,
+                },
+              },
+            },
+          },
+        },
       });
     }
 
@@ -197,7 +212,11 @@ exports.clearCart = async (req, res, next) => {
 
     await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
 
-    res.json({ message: 'Cart cleared' });
+    return res.json({ message: 'Cart cleared' });
+  } catch (error) {
+    next(error);
+  }
+};
   } catch (error) {
     next(error);
   }
