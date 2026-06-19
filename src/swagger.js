@@ -819,21 +819,6 @@ module.exports = {
         responses: { 200: { description: "Cart cleared" } },
       },
     },
-    "/api/cart/calculate-total": {
-      post: {
-        tags: ["Cart"],
-        summary: "Calculate cart total with coupon",
-        security: [{ bearerAuth: [] }],
-        requestBody: {
-          content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/OrderCreate" },
-            },
-          },
-        },
-        responses: { 200: { description: "Total calculated" } },
-      },
-    },
     "/api/cart/{cartItemId}": {
       put: {
         tags: ["Cart"],
@@ -874,6 +859,21 @@ module.exports = {
           },
         ],
         responses: { 200: { description: "Item removed" } },
+      },
+    },
+    "/api/cart/calculate-total": {
+      post: {
+        tags: ["Cart"],
+        summary: "Calculate cart total with coupon",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/OrderCreate" },
+            },
+          },
+        },
+        responses: { 200: { description: "Total calculated" } },
       },
     },
     "/api/orders": {

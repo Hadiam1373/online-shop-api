@@ -6,7 +6,7 @@ exports.getCart = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    let cart = await prisma.cart.findUnique({
+    let cart = await prisma.cart.findFirst({
       where: { userId },
       include: {
         cartItems: {
@@ -92,7 +92,7 @@ exports.addToCart = async (req, res, next) => {
     }
 
     // Get or create cart
-    let cart = await prisma.cart.findUnique({ where: { userId } });
+    let cart = await prisma.cart.findFirst({ where: { userId } });
     if (!cart) {
       cart = await prisma.cart.create({ data: { userId } });
     }
@@ -143,7 +143,7 @@ exports.updateCartItem = async (req, res, next) => {
     const { cartItemId } = req.params;
     const { quantity } = req.body;
 
-    if (!quantity || quantity < 0) {
+    if (quantity < 0) {
       return res.status(400).json({ error: "Valid quantity is required" });
     }
 
@@ -209,7 +209,7 @@ exports.clearCart = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    const cart = await prisma.cart.findUnique({ where: { userId } });
+    const cart = await prisma.cart.findFirst({ where: { userId } });
     if (!cart) {
       return res.status(404).json({ error: "Cart not found" });
     }
@@ -228,7 +228,7 @@ exports.calculateTotal = async (req, res, next) => {
     const userId = req.user.id;
     const { couponCode } = req.body;
 
-    const cart = await prisma.cart.findUnique({
+    const cart = await prisma.cart.findFirst({
       where: { userId },
       include: {
         cartItems: {
@@ -260,6 +260,7 @@ exports.calculateTotal = async (req, res, next) => {
       if (coupon) {
         const now = new Date();
         if (
+          coupon.expirationDate &&
           coupon.expirationDate >= now &&
           coupon.usedCount < coupon.usageLimit
         ) {

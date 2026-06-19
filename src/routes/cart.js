@@ -36,7 +36,7 @@ router.put(
   validate(updateCartItemSchema),
   cartController.updateCartItem,
 );
-router.delete("/:cartItemId", cartController.removeFromCart);
 router.delete("/", cartController.clearCart);
+router.delete("/:cartItemId", cartController.removeFromCart);
 
 module.exports = router;
