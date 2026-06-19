@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 // Get user's cart
@@ -73,7 +73,9 @@ exports.addToCart = async (req, res, next) => {
     const { productId, quantity } = req.body;
 
     if (!productId || !quantity || quantity < 1) {
-      return res.status(400).json({ error: 'Product ID and quantity are required' });
+      return res
+        .status(400)
+        .json({ error: "Product ID and quantity are required" });
     }
 
     // Check if product exists and has stock
@@ -82,11 +84,11 @@ exports.addToCart = async (req, res, next) => {
     });
 
     if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
+      return res.status(404).json({ error: "Product not found" });
     }
 
     if (product.stock < quantity) {
-      return res.status(400).json({ error: 'Insufficient stock' });
+      return res.status(400).json({ error: "Insufficient stock" });
     }
 
     // Get or create cart
@@ -105,7 +107,9 @@ exports.addToCart = async (req, res, next) => {
       // Update quantity
       const newQuantity = existingItem.quantity + quantity;
       if (product.stock < newQuantity) {
-        return res.status(400).json({ error: 'Insufficient stock for requested quantity' });
+        return res
+          .status(400)
+          .json({ error: "Insufficient stock for requested quantity" });
       }
 
       cartItem = await prisma.cartItem.update({
@@ -126,7 +130,7 @@ exports.addToCart = async (req, res, next) => {
       });
     }
 
-    res.status(201).json({ message: 'Product added to cart', cartItem });
+    res.status(201).json({ message: "Product added to cart", cartItem });
   } catch (error) {
     next(error);
   }
@@ -140,7 +144,7 @@ exports.updateCartItem = async (req, res, next) => {
     const { quantity } = req.body;
 
     if (!quantity || quantity < 0) {
-      return res.status(400).json({ error: 'Valid quantity is required' });
+      return res.status(400).json({ error: "Valid quantity is required" });
     }
 
     // Get cart item and verify it belongs to user
@@ -150,18 +154,18 @@ exports.updateCartItem = async (req, res, next) => {
     });
 
     if (!cartItem || cartItem.cart.userId !== userId) {
-      return res.status(404).json({ error: 'Cart item not found' });
+      return res.status(404).json({ error: "Cart item not found" });
     }
 
     // Check stock
     if (quantity > 0 && cartItem.product.stock < quantity) {
-      return res.status(400).json({ error: 'Insufficient stock' });
+      return res.status(400).json({ error: "Insufficient stock" });
     }
 
     if (quantity === 0) {
       // Delete item if quantity is 0
       await prisma.cartItem.delete({ where: { id: cartItemId } });
-      return res.json({ message: 'Item removed from cart' });
+      return res.json({ message: "Item removed from cart" });
     }
 
     const updated = await prisma.cartItem.update({
@@ -189,12 +193,12 @@ exports.removeFromCart = async (req, res, next) => {
     });
 
     if (!cartItem || cartItem.cart.userId !== userId) {
-      return res.status(404).json({ error: 'Cart item not found' });
+      return res.status(404).json({ error: "Cart item not found" });
     }
 
     await prisma.cartItem.delete({ where: { id: cartItemId } });
 
-    res.json({ message: 'Product removed from cart' });
+    res.json({ message: "Product removed from cart" });
   } catch (error) {
     next(error);
   }
@@ -207,16 +211,12 @@ exports.clearCart = async (req, res, next) => {
 
     const cart = await prisma.cart.findUnique({ where: { userId } });
     if (!cart) {
-      return res.status(404).json({ error: 'Cart not found' });
+      return res.status(404).json({ error: "Cart not found" });
     }
 
     await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
 
-    return res.json({ message: 'Cart cleared' });
-  } catch (error) {
-    next(error);
-  }
-};
+    return res.json({ message: "Cart cleared" });
   } catch (error) {
     next(error);
   }
@@ -238,7 +238,7 @@ exports.calculateTotal = async (req, res, next) => {
     });
 
     if (!cart) {
-      return res.status(404).json({ error: 'Cart not found' });
+      return res.status(404).json({ error: "Cart not found" });
     }
 
     let subtotal = 0;
@@ -259,8 +259,11 @@ exports.calculateTotal = async (req, res, next) => {
 
       if (coupon) {
         const now = new Date();
-        if (coupon.expirationDate >= now && coupon.usedCount < coupon.usageLimit) {
-          if (coupon.discountType === 'PERCENTAGE') {
+        if (
+          coupon.expirationDate >= now &&
+          coupon.usedCount < coupon.usageLimit
+        ) {
+          if (coupon.discountType === "PERCENTAGE") {
             discount = (subtotal * coupon.discountValue) / 100;
           } else {
             discount = coupon.discountValue;
@@ -270,7 +273,7 @@ exports.calculateTotal = async (req, res, next) => {
     }
 
     // Calculate tax (assuming 10%)
-    tax = ((subtotal - discount) * 0.1);
+    tax = (subtotal - discount) * 0.1;
 
     const total = subtotal - discount + tax;
 
