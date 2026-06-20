@@ -1,12 +1,36 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
+const normalizeCart = (cart) => ({
+  ...cart,
+  cartItems: cart.cartItems.map((item) => ({
+    ...item,
+    cartItemId: item.id,
+    itemId: item.id,
+  })),
+});
+
+const calculateCartSummary = (cart) => {
+  const subtotal = cart.cartItems.reduce((sum, item) => {
+    const price = item.product.discountPrice || item.product.price;
+    return sum + price * item.quantity;
+  }, 0);
+
+  const itemCount = cart.cartItems.reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  );
+
+  return { subtotal, total: subtotal, itemCount };
+};
+
 // Helper: load cart with items and product details for a user
 const loadCartForUser = async (userId) => {
   let cart = await prisma.cart.findFirst({
     where: { userId },
     include: {
       cartItems: {
+        orderBy: { id: "asc" },
         include: {
           product: {
             select: {
@@ -28,6 +52,7 @@ const loadCartForUser = async (userId) => {
       data: { userId },
       include: {
         cartItems: {
+          orderBy: { id: "asc" },
           include: {
             product: {
               select: {
@@ -45,7 +70,7 @@ const loadCartForUser = async (userId) => {
     });
   }
 
-  return cart;
+  return normalizeCart(cart);
 };
 // Get user's cart
 exports.getCart = async (req, res, next) => {
@@ -56,6 +81,7 @@ exports.getCart = async (req, res, next) => {
       where: { userId },
       include: {
         cartItems: {
+          orderBy: { id: "asc" },
           include: {
             product: {
               select: {
@@ -78,6 +104,7 @@ exports.getCart = async (req, res, next) => {
         data: { userId },
         include: {
           cartItems: {
+            orderBy: { id: "asc" },
             include: {
               product: {
                 select: {
@@ -95,17 +122,14 @@ exports.getCart = async (req, res, next) => {
       });
     }
 
-    // Calculate totals
-    const subtotal = cart.cartItems.reduce((sum, item) => {
-      const price = item.product.discountPrice || item.product.price;
-      return sum + price * item.quantity;
-    }, 0);
+    const normalizedCart = normalizeCart(cart);
+    const { subtotal, total, itemCount } = calculateCartSummary(normalizedCart);
 
     res.json({
-      cart,
+      cart: normalizedCart,
       subtotal,
-      total: subtotal,
-      itemCount: cart.cartItems.length,
+      total,
+      itemCount,
     });
   } catch (error) {
     next(error);
@@ -177,21 +201,17 @@ exports.addToCart = async (req, res, next) => {
     }
 
     // Return full cart so client sees up-to-date IDs and totals
-    const cart = await loadCartForUser(userId);
-    const subtotal = cart.cartItems.reduce((sum, item) => {
-      const price = item.product.discountPrice || item.product.price;
-      return sum + price * item.quantity;
-    }, 0);
+    cart = await loadCartForUser(userId);
+    const normalizedCart = normalizeCart(cart);
+    const { subtotal, total, itemCount } = calculateCartSummary(normalizedCart);
 
-    res
-      .status(201)
-      .json({
-        message: "Product added to cart",
-        cart,
-        subtotal,
-        total: subtotal,
-        itemCount: cart.cartItems.length,
-      });
+    res.status(201).json({
+      message: "Product added to cart",
+      cart: normalizedCart,
+      subtotal,
+      total,
+      itemCount,
+    });
   } catch (error) {
     next(error);
   }
@@ -228,16 +248,13 @@ exports.updateCartItem = async (req, res, next) => {
       await prisma.cartItem.delete({ where: { id: cartItemId } });
 
       const cart = await loadCartForUser(userId);
-      const subtotal = cart.cartItems.reduce((sum, item) => {
-        const price = item.product.discountPrice || item.product.price;
-        return sum + price * item.quantity;
-      }, 0);
+      const { subtotal, total, itemCount } = calculateCartSummary(cart);
 
       return res.json({
         cart,
         subtotal,
-        total: subtotal,
-        itemCount: cart.cartItems.length,
+        total,
+        itemCount,
       });
     }
 
@@ -247,16 +264,13 @@ exports.updateCartItem = async (req, res, next) => {
     });
 
     const cart = await loadCartForUser(userId);
-    const subtotal = cart.cartItems.reduce((sum, item) => {
-      const price = item.product.discountPrice || item.product.price;
-      return sum + price * item.quantity;
-    }, 0);
+    const { subtotal, total, itemCount } = calculateCartSummary(cart);
 
     res.json({
       cart,
       subtotal,
-      total: subtotal,
-      itemCount: cart.cartItems.length,
+      total,
+      itemCount,
     });
   } catch (error) {
     next(error);
@@ -289,16 +303,13 @@ exports.incrementCartItem = async (req, res, next) => {
     });
 
     const cart = await loadCartForUser(userId);
-    const subtotal = cart.cartItems.reduce((sum, item) => {
-      const price = item.product.discountPrice || item.product.price;
-      return sum + price * item.quantity;
-    }, 0);
+    const { subtotal, total, itemCount } = calculateCartSummary(cart);
 
     res.json({
       cart,
       subtotal,
-      total: subtotal,
-      itemCount: cart.cartItems.length,
+      total,
+      itemCount,
     });
   } catch (error) {
     next(error);
@@ -325,16 +336,13 @@ exports.decrementCartItem = async (req, res, next) => {
       await prisma.cartItem.delete({ where: { id: cartItemId } });
 
       const cart = await loadCartForUser(userId);
-      const subtotal = cart.cartItems.reduce((sum, item) => {
-        const price = item.product.discountPrice || item.product.price;
-        return sum + price * item.quantity;
-      }, 0);
+      const { subtotal, total, itemCount } = calculateCartSummary(cart);
 
       return res.json({
         cart,
         subtotal,
-        total: subtotal,
-        itemCount: cart.cartItems.length,
+        total,
+        itemCount,
       });
     }
 
@@ -344,16 +352,66 @@ exports.decrementCartItem = async (req, res, next) => {
     });
 
     const cart = await loadCartForUser(userId);
-    const subtotal = cart.cartItems.reduce((sum, item) => {
-      const price = item.product.discountPrice || item.product.price;
-      return sum + price * item.quantity;
-    }, 0);
+    const { subtotal, total, itemCount } = calculateCartSummary(cart);
 
     res.json({
       cart,
       subtotal,
-      total: subtotal,
-      itemCount: cart.cartItems.length,
+      total,
+      itemCount,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.changeCartItemQuantityByType = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { cartItemId, type } = req.params;
+
+    if (!["increment", "decrement"].includes(type)) {
+      return res.status(400).json({ error: "Invalid cart action" });
+    }
+
+    const cartItem = await prisma.cartItem.findUnique({
+      where: { id: cartItemId },
+      include: { cart: true, product: true },
+    });
+
+    if (!cartItem || cartItem.cart.userId !== userId) {
+      return res.status(404).json({ error: "Cart item not found" });
+    }
+
+    if (type === "increment") {
+      if (cartItem.product.stock <= cartItem.quantity) {
+        return res.status(400).json({ error: "Insufficient stock" });
+      }
+
+      await prisma.cartItem.update({
+        where: { id: cartItemId },
+        data: { quantity: cartItem.quantity + 1 },
+      });
+    } else {
+      const newQuantity = cartItem.quantity - 1;
+      if (newQuantity <= 0) {
+        await prisma.cartItem.delete({ where: { id: cartItemId } });
+      } else {
+        await prisma.cartItem.update({
+          where: { id: cartItemId },
+          data: { quantity: newQuantity },
+        });
+      }
+    }
+
+    const cart = await loadCartForUser(userId);
+    const { subtotal, total, itemCount } = calculateCartSummary(cart);
+
+    res.json({
+      cart,
+      subtotal,
+      total,
+      itemCount,
     });
   } catch (error) {
     next(error);
@@ -412,6 +470,7 @@ exports.calculateTotal = async (req, res, next) => {
       where: { userId },
       include: {
         cartItems: {
+          orderBy: { id: "asc" },
           include: { product: true },
         },
       },

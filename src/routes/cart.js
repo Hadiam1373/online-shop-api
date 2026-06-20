@@ -39,6 +39,7 @@ router.put(
 // Increment / decrement quantity by 1
 router.post("/:cartItemId/increment", cartController.incrementCartItem);
 router.post("/:cartItemId/decrement", cartController.decrementCartItem);
+router.post("/:cartItemId/:type", cartController.changeCartItemQuantityByType);
 router.delete("/", cartController.clearCart);
 router.delete("/:cartItemId", cartController.removeFromCart);
 

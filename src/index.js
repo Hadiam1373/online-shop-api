@@ -136,16 +136,36 @@ app.use("*", (req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT, 10) || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const startServer = (port, attempts = 3) => {
+  const server = app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE" && attempts > 0) {
+      console.warn(`Port ${port} in use, trying ${port + 1}...`);
+      setTimeout(() => startServer(port + 1, attempts - 1), 200);
+    } else {
+      console.error("Server failed to start:", err);
+      process.exit(1);
+    }
+  });
+
+  return server;
+};
+
+startServer(PORT);
 
 // Graceful shutdown
 process.on("SIGINT", async () => {
   await prisma.$disconnect();
-  await redisClient.quit();
+  try {
+    await redisClient.quit();
+  } catch (e) {
+    // Ignore
+  }
   process.exit(0);
 });
 
