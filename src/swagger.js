@@ -861,6 +861,45 @@ module.exports = {
         responses: { 200: { description: "Item removed" } },
       },
     },
+    "/api/cart/{cartItemId}/increment": {
+      post: {
+        tags: ["Cart"],
+        summary: "Increment cart item quantity by 1",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "cartItemId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          200: { description: "Cart item incremented" },
+          400: { description: "Insufficient stock or invalid request" },
+          404: { description: "Cart item not found" },
+        },
+      },
+    },
+    "/api/cart/{cartItemId}/decrement": {
+      post: {
+        tags: ["Cart"],
+        summary: "Decrement cart item quantity by 1 (remove if reaches 0)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "cartItemId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          200: { description: "Cart item decremented or removed" },
+          404: { description: "Cart item not found" },
+        },
+      },
+    },
     "/api/cart/calculate-total": {
       post: {
         tags: ["Cart"],

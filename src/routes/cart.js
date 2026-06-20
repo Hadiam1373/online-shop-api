@@ -36,6 +36,9 @@ router.put(
   validate(updateCartItemSchema),
   cartController.updateCartItem,
 );
+// Increment / decrement quantity by 1
+router.post("/:cartItemId/increment", cartController.incrementCartItem);
+router.post("/:cartItemId/decrement", cartController.decrementCartItem);
 router.delete("/", cartController.clearCart);
 router.delete("/:cartItemId", cartController.removeFromCart);
 
