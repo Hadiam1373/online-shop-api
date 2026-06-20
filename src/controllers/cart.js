@@ -1,6 +1,52 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
+// Helper: load cart with items and product details for a user
+const loadCartForUser = async (userId) => {
+  let cart = await prisma.cart.findFirst({
+    where: { userId },
+    include: {
+      cartItems: {
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              price: true,
+              discountPrice: true,
+              images: true,
+              stock: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!cart) {
+    cart = await prisma.cart.create({
+      data: { userId },
+      include: {
+        cartItems: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                discountPrice: true,
+                images: true,
+                stock: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  return cart;
+};
 // Get user's cart
 exports.getCart = async (req, res, next) => {
   try {
@@ -130,7 +176,22 @@ exports.addToCart = async (req, res, next) => {
       });
     }
 
-    res.status(201).json({ message: "Product added to cart", cartItem });
+    // Return full cart so client sees up-to-date IDs and totals
+    const cart = await loadCartForUser(userId);
+    const subtotal = cart.cartItems.reduce((sum, item) => {
+      const price = item.product.discountPrice || item.product.price;
+      return sum + price * item.quantity;
+    }, 0);
+
+    res
+      .status(201)
+      .json({
+        message: "Product added to cart",
+        cart,
+        subtotal,
+        total: subtotal,
+        itemCount: cart.cartItems.length,
+      });
   } catch (error) {
     next(error);
   }
@@ -165,16 +226,38 @@ exports.updateCartItem = async (req, res, next) => {
     if (quantity === 0) {
       // Delete item if quantity is 0
       await prisma.cartItem.delete({ where: { id: cartItemId } });
-      return res.json({ message: "Item removed from cart" });
+
+      const cart = await loadCartForUser(userId);
+      const subtotal = cart.cartItems.reduce((sum, item) => {
+        const price = item.product.discountPrice || item.product.price;
+        return sum + price * item.quantity;
+      }, 0);
+
+      return res.json({
+        cart,
+        subtotal,
+        total: subtotal,
+        itemCount: cart.cartItems.length,
+      });
     }
 
-    const updated = await prisma.cartItem.update({
+    await prisma.cartItem.update({
       where: { id: cartItemId },
       data: { quantity },
-      include: { product: true },
     });
 
-    res.json(updated);
+    const cart = await loadCartForUser(userId);
+    const subtotal = cart.cartItems.reduce((sum, item) => {
+      const price = item.product.discountPrice || item.product.price;
+      return sum + price * item.quantity;
+    }, 0);
+
+    res.json({
+      cart,
+      subtotal,
+      total: subtotal,
+      itemCount: cart.cartItems.length,
+    });
   } catch (error) {
     next(error);
   }
@@ -200,13 +283,23 @@ exports.incrementCartItem = async (req, res, next) => {
       return res.status(400).json({ error: "Insufficient stock" });
     }
 
-    const updated = await prisma.cartItem.update({
+    await prisma.cartItem.update({
       where: { id: cartItemId },
       data: { quantity: cartItem.quantity + 1 },
-      include: { product: true },
     });
 
-    res.json(updated);
+    const cart = await loadCartForUser(userId);
+    const subtotal = cart.cartItems.reduce((sum, item) => {
+      const price = item.product.discountPrice || item.product.price;
+      return sum + price * item.quantity;
+    }, 0);
+
+    res.json({
+      cart,
+      subtotal,
+      total: subtotal,
+      itemCount: cart.cartItems.length,
+    });
   } catch (error) {
     next(error);
   }
@@ -230,16 +323,38 @@ exports.decrementCartItem = async (req, res, next) => {
     const newQuantity = cartItem.quantity - 1;
     if (newQuantity <= 0) {
       await prisma.cartItem.delete({ where: { id: cartItemId } });
-      return res.json({ message: "Item removed from cart" });
+
+      const cart = await loadCartForUser(userId);
+      const subtotal = cart.cartItems.reduce((sum, item) => {
+        const price = item.product.discountPrice || item.product.price;
+        return sum + price * item.quantity;
+      }, 0);
+
+      return res.json({
+        cart,
+        subtotal,
+        total: subtotal,
+        itemCount: cart.cartItems.length,
+      });
     }
 
-    const updated = await prisma.cartItem.update({
+    await prisma.cartItem.update({
       where: { id: cartItemId },
       data: { quantity: newQuantity },
-      include: { product: true },
     });
 
-    res.json(updated);
+    const cart = await loadCartForUser(userId);
+    const subtotal = cart.cartItems.reduce((sum, item) => {
+      const price = item.product.discountPrice || item.product.price;
+      return sum + price * item.quantity;
+    }, 0);
+
+    res.json({
+      cart,
+      subtotal,
+      total: subtotal,
+      itemCount: cart.cartItems.length,
+    });
   } catch (error) {
     next(error);
   }
