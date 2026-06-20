@@ -77,6 +77,9 @@ app.use(morgan("combined"));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
+// Translate responses: add `message_fa`/`error_fa` fields when possible
+app.use(require("./middlewares/translateResponse"));
+
 // Swagger UI for API documentation
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
