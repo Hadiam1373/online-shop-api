@@ -8,7 +8,7 @@ exports.createOrder = async (req, res, next) => {
     const { couponCode } = req.body;
 
     // Get user's cart
-    const cart = await prisma.cart.findUnique({
+    const cart = await prisma.cart.findFirst({
       where: { userId },
       include: {
         cartItems: {

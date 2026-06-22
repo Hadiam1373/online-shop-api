@@ -69,6 +69,7 @@ services:
       - ./src:/app/src
       - ./prisma:/app/prisma
       - ./.env:/app/.env:ro
+      - app_node_modules:/app/node_modules
     restart: always
     networks:
       - shop_network

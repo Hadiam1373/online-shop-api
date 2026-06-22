@@ -31,7 +31,6 @@ router.post(
 );
 router.get(
   "/zarinpal/start",
-  validate(zarinpalRequestSchema),
   paymentController.startZarinpalPayment,
 );
 router.post(

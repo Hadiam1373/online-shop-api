@@ -1,8 +1,14 @@
 const { PrismaClient } = require("@prisma/client");
-const Stripe = require("stripe");
+let Stripe = null;
+try {
+  Stripe = require("stripe");
+} catch (e) {
+  // stripe may be optional in some environments (dev/test); fall back gracefully
+  Stripe = null;
+}
 const fetch = require("node-fetch");
 const prisma = new PrismaClient();
-const stripe = process.env.STRIPE_SECRET_KEY
+const stripe = process.env.STRIPE_SECRET_KEY && Stripe
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
 
