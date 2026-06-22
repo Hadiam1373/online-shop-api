@@ -13,16 +13,32 @@ const processPaymentSchema = Joi.object({
   cardLast4: Joi.string().optional(),
 });
 
+const zarinpalRequestSchema = Joi.object({
+  orderId: Joi.string().required(),
+});
+
+// Zarinpal callback does not require authentication
+router.get("/zarinpal/callback", paymentController.verifyZarinpalPayment);
+
 // All payment routes require authentication
 router.use(authenticate);
 
 // User routes
 router.post(
+  "/zarinpal/request",
+  validate(zarinpalRequestSchema),
+  paymentController.createZarinpalPayment,
+);
+router.get(
+  "/zarinpal/start",
+  validate(zarinpalRequestSchema),
+  paymentController.startZarinpalPayment,
+);
+router.post(
   "/",
   validate(processPaymentSchema),
   paymentController.processPayment,
 );
-router.get("/:paymentId", paymentController.getPayment);
 router.get("/order/:orderId", paymentController.getPaymentByOrder);
 
 // Admin routes
@@ -41,5 +57,6 @@ router.post(
   authorize(["ADMIN"]),
   paymentController.refundPayment,
 );
+router.get("/:paymentId", paymentController.getPayment);
 
 module.exports = router;

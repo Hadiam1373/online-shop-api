@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="fa">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>پرداخت تستی زرین‌پال sandbox</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        direction: rtl;
+        text-align: right;
+        padding: 2rem;
+        background: #f4f7fb;
+        color: #111827;
+      }
+      .card {
+        max-width: 680px;
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+        padding: 2rem;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 700;
+      }
+      input,
+      button {
+        width: 100%;
+        padding: 0.95rem 1rem;
+        border-radius: 12px;
+        border: 1px solid #d1d5db;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+      }
+      button {
+        background: #2563eb;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+      button:hover {
+        background: #1d4ed8;
+      }
+      .message {
+        padding: 1rem;
+        border-radius: 12px;
+        margin-top: 1rem;
+        white-space: pre-wrap;
+        font-size: 0.95rem;
+      }
+      .success {
+        background: #d1fae5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+      }
+      .error {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+      }
+      .note {
+        color: #475569;
+        margin-bottom: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>پرداخت تستی زرین‌پال sandbox</h1>
+      <p class="note">
+        برای استفاده: ابتدا سفارش را با API ایجاد کن، سپس شناسه سفارش را اینجا
+        وارد کن.
+      </p>
+
+      <label for="orderId">Order ID</label>
+      <input id="orderId" placeholder="مثلاً abc123..." />
+
+      <button id="submit">درخواست درگاه زرین‌پال</button>
+
+      <div id="output"></div>
+      <p class="note">
+        اگر درخواست موفق باشد، لینک درگاه زرین‌پال باز می‌شود و کاربر به صفحه
+        پرداخت هدایت خواهد شد.
+      </p>
+    </div>
+
+    <script>
+      const submit = document.getElementById("submit");
+      const output = document.getElementById("output");
+
+      submit.addEventListener("click", async () => {
+        output.innerHTML = "";
+        const orderId = document.getElementById("orderId").value.trim();
+
+        if (!orderId) {
+          output.innerHTML =
+            '<div class="message error">لطفاً شناسه سفارش را وارد کنید.</div>';
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/payments/zarinpal/request", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId }),
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            output.innerHTML = `<div class="message error"><strong>خطا:</strong> ${data.error || JSON.stringify(data)}</div>`;
+            return;
+          }
+
+          output.innerHTML = `<div class="message success"><strong>درخواست موفق بود.</strong> درگاه باز می‌شود...</div>`;
+          window.location.href = data.paymentUrl;
+        } catch (err) {
+          output.innerHTML = `<div class="message error"><strong>خطای شبکه:</strong> ${err.message}</div>`;
+        }
+      });
+    </script>
+  </body>
+</html>

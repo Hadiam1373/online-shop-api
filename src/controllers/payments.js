@@ -1,9 +1,30 @@
 const { PrismaClient } = require("@prisma/client");
+const Stripe = require("stripe");
+const fetch = require("node-fetch");
 const prisma = new PrismaClient();
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
 
-// Mock payment processing
-const processPayment = (amount, cardToken) => {
-  // Simulate payment success rate of 95%
+const ZARINPAL_MERCHANT_ID = process.env.ZARINPAL_MERCHANT_ID;
+const ZARINPAL_SANDBOX = process.env.ZARINPAL_SANDBOX !== "false";
+const ZARINPAL_BASE_URL = ZARINPAL_SANDBOX
+  ? "https://sandbox.zarinpal.com"
+  : "https://www.zarinpal.com";
+
+const getZarinpalCallbackUrl = (orderId) => {
+  const callback = process.env.ZARINPAL_CALLBACK_URL;
+  if (callback) {
+    return callback.includes("?")
+      ? `${callback}&orderId=${encodeURIComponent(orderId)}`
+      : `${callback}?orderId=${encodeURIComponent(orderId)}`;
+  }
+
+  const apiUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 5000}`;
+  return `${apiUrl}/api/payments/zarinpal/callback?orderId=${encodeURIComponent(orderId)}`;
+};
+
+const processMockPayment = (amount, cardToken) => {
   const isSuccess = Math.random() < 0.95;
 
   return {
@@ -11,6 +32,74 @@ const processPayment = (amount, cardToken) => {
     transactionId: `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
     message: isSuccess ? "Payment processed successfully" : "Payment declined",
   };
+};
+
+const processStripePayment = async (amount, cardToken, orderId) => {
+  try {
+    const charge = await stripe.charges.create({
+      amount: Math.round(amount * 100),
+      currency: process.env.STRIPE_CURRENCY || "usd",
+      source: cardToken,
+      description: `Order ${orderId}`,
+      metadata: { orderId },
+    });
+
+    return {
+      success: charge.status === "succeeded",
+      transactionId: charge.id,
+      message: charge.outcome?.seller_message || charge.status,
+      raw: charge,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      transactionId: error.code || null,
+      message: error.message,
+      error,
+    };
+  }
+};
+
+const requestZarinpalPayment = async (order) => {
+  if (!ZARINPAL_MERCHANT_ID) {
+    throw new Error("Zarinpal merchant ID is not configured");
+  }
+
+  const callbackURL = getZarinpalCallbackUrl(order.id);
+  const amount = Math.round(order.total);
+
+  const response = await fetch(`${ZARINPAL_BASE_URL}/pg/rest/WebGate/PaymentRequest.json`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      MerchantID: ZARINPAL_MERCHANT_ID,
+      Amount: amount,
+      CallbackURL: callbackURL,
+      Description: `پرداخت سفارش ${order.id}`,
+      Metadata: { orderId: order.id },
+    }),
+  });
+
+  const result = await response.json();
+  return result;
+};
+
+const verifyZarinpalPayment = async (authority, amount) => {
+  if (!ZARINPAL_MERCHANT_ID) {
+    throw new Error("Zarinpal merchant ID is not configured");
+  }
+
+  const response = await fetch(`${ZARINPAL_BASE_URL}/pg/rest/WebGate/PaymentVerification.json`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      MerchantID: ZARINPAL_MERCHANT_ID,
+      Authority: authority,
+      Amount: amount,
+    }),
+  });
+
+  return response.json();
 };
 
 // Process payment for an order
@@ -49,8 +138,9 @@ exports.processPayment = async (req, res, next) => {
         .json({ error: "Payment already processed for this order" });
     }
 
-    // Process payment with mock gateway
-    const paymentResult = processPayment(order.total, cardToken);
+    const paymentResult = stripe
+      ? await processStripePayment(order.total, cardToken, order.id)
+      : processMockPayment(order.total, cardToken);
 
     // Create payment record
     const payment = await prisma.payment.create({
@@ -78,6 +168,194 @@ exports.processPayment = async (req, res, next) => {
       },
       result: paymentResult,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.createZarinpalPayment = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({ error: "Order ID is required" });
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { payment: true },
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    if (order.userId !== userId && req.user.role !== "ADMIN") {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    if (order.payment) {
+      return res.status(400).json({ error: "Payment already exists for this order" });
+    }
+
+    const zarinpalResult = await requestZarinpalPayment(order);
+    if (zarinpalResult.Status !== 100) {
+      return res.status(400).json({
+        error: "Zarinpal request failed",
+        details: zarinpalResult,
+      });
+    }
+
+    const paymentUrl = `${ZARINPAL_BASE_URL}/pg/StartPay/${zarinpalResult.Authority}`;
+    res.json({ paymentUrl, authority: zarinpalResult.Authority });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.startZarinpalPayment = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { orderId } = req.query;
+
+    if (!orderId) {
+      return res.status(400).json({ error: "Order ID is required" });
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { payment: true },
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    if (order.userId !== userId && req.user.role !== "ADMIN") {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    if (order.payment) {
+      return res.status(400).json({ error: "Payment already exists for this order" });
+    }
+
+    const zarinpalResult = await requestZarinpalPayment(order);
+    if (zarinpalResult.Status !== 100) {
+      return res.status(400).json({
+        error: "Zarinpal request failed",
+        details: zarinpalResult,
+      });
+    }
+
+    const paymentUrl = `${ZARINPAL_BASE_URL}/pg/StartPay/${zarinpalResult.Authority}`;
+    return res.redirect(paymentUrl);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.verifyZarinpalPayment = async (req, res, next) => {
+  try {
+    const { Authority, Status, orderId } = req.query;
+
+    if (!Authority || !Status || !orderId) {
+      return res.status(400).send(`
+        <html><body><h1>پرداخت ناموفق</h1><p>پارامترهای لازم ارسال نشده‌اند.</p></body></html>
+      `);
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { payment: true },
+    });
+
+    if (!order) {
+      return res.status(404).send(`
+        <html><body><h1>پرداخت ناموفق</h1><p>سفارش پیدا نشد.</p></body></html>
+      `);
+    }
+
+    if (Status !== "OK") {
+      if (order.payment) {
+        await prisma.payment.update({
+          where: { id: order.payment.id },
+          data: {
+            status: "FAILURE",
+            transactionId: Authority,
+          },
+        });
+      } else {
+        await prisma.payment.create({
+          data: {
+            orderId: order.id,
+            amount: order.total,
+            status: "FAILURE",
+            transactionId: Authority,
+          },
+        });
+      }
+
+      return res.send(`
+        <html><body><h1>پرداخت ناموفق</h1><p>وضعیت پرداخت: ${Status}</p></body></html>
+      `);
+    }
+
+    const verification = await verifyZarinpalPayment(Authority, Math.round(order.total));
+    let payment;
+
+    if (verification.Status === 100 || verification.Status === 101) {
+      if (order.payment) {
+        payment = await prisma.payment.update({
+          where: { id: order.payment.id },
+          data: {
+            status: "SUCCESS",
+            transactionId: Authority,
+          },
+        });
+      } else {
+        payment = await prisma.payment.create({
+          data: {
+            orderId: order.id,
+            amount: order.total,
+            status: "SUCCESS",
+            transactionId: Authority,
+          },
+        });
+      }
+
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { status: "PAID" },
+      });
+
+      return res.send(`
+        <html><body><h1>پرداخت موفق</h1><p>سفارش شما با موفقیت پرداخت شد.</p><p>کد Authority: ${Authority}</p></body></html>
+      `);
+    }
+
+    if (order.payment) {
+      await prisma.payment.update({
+        where: { id: order.payment.id },
+        data: {
+          status: "FAILURE",
+          transactionId: Authority,
+        },
+      });
+    } else {
+      await prisma.payment.create({
+        data: {
+          orderId: order.id,
+          amount: order.total,
+          status: "FAILURE",
+          transactionId: Authority,
+        },
+      });
+    }
+
+    return res.send(`
+      <html><body><h1>پرداخت ناموفق</h1><p>وضعیت بازگشتی: ${verification.Status}</p><p>پیغام: ${verification.Message || verification.Status}</p></body></html>
+    `);
   } catch (error) {
     next(error);
   }
