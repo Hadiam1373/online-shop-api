@@ -71,23 +71,44 @@ const requestZarinpalPayment = async (order) => {
     throw new Error("Zarinpal merchant ID is not configured");
   }
 
+  if (ZARINPAL_MERCHANT_ID === "00000000-0000-0000-0000-000000000000") {
+    throw new Error(
+      "Zarinpal merchant ID is not set. Please configure a valid Merchant ID from https://www.zarinpal.com"
+    );
+  }
+
   const callbackURL = getZarinpalCallbackUrl(order.id);
   const amount = Math.round(order.total);
 
-  const response = await fetch(`${ZARINPAL_BASE_URL}/pg/rest/WebGate/PaymentRequest.json`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      MerchantID: ZARINPAL_MERCHANT_ID,
-      Amount: amount,
-      CallbackURL: callbackURL,
-      Description: `پرداخت سفارش ${order.id}`,
-      Metadata: { orderId: order.id },
-    }),
-  });
+  try {
+    const response = await fetch(
+      `${ZARINPAL_BASE_URL}/pg/rest/WebGate/PaymentRequest.json`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          MerchantID: ZARINPAL_MERCHANT_ID,
+          Amount: amount,
+          CallbackURL: callbackURL,
+          Description: `پرداخت سفارش ${order.id}`,
+          Metadata: { orderId: order.id },
+        }),
+      }
+    );
 
-  const result = await response.json();
-  return result;
+    const text = await response.text();
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      throw new Error(
+        `Zarinpal API returned invalid response. Status: ${response.status}. Check your Merchant ID and network connection. Response: ${text.substring(0, 200)}`
+      );
+    }
+    return result;
+  } catch (error) {
+    throw error;
+  }
 };
 
 const verifyZarinpalPayment = async (authority, amount) => {
@@ -95,17 +116,33 @@ const verifyZarinpalPayment = async (authority, amount) => {
     throw new Error("Zarinpal merchant ID is not configured");
   }
 
-  const response = await fetch(`${ZARINPAL_BASE_URL}/pg/rest/WebGate/PaymentVerification.json`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      MerchantID: ZARINPAL_MERCHANT_ID,
-      Authority: authority,
-      Amount: amount,
-    }),
-  });
+  try {
+    const response = await fetch(
+      `${ZARINPAL_BASE_URL}/pg/rest/WebGate/PaymentVerification.json`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          MerchantID: ZARINPAL_MERCHANT_ID,
+          Authority: authority,
+          Amount: amount,
+        }),
+      }
+    );
 
-  return response.json();
+    const text = await response.text();
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      throw new Error(
+        `Zarinpal verification API returned invalid response. Status: ${response.status}. Response: ${text.substring(0, 200)}`
+      );
+    }
+    return result;
+  } catch (error) {
+    throw error;
+  }
 };
 
 // Process payment for an order
