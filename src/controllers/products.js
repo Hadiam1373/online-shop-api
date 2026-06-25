@@ -7,7 +7,7 @@ const getProducts = async (req, res, next) => {
     const {
       page = 1,
       limit = 10,
-      category,
+      categoryId,
       minPrice,
       maxPrice,
       search,
@@ -26,34 +26,44 @@ const getProducts = async (req, res, next) => {
         : 10;
     const skip = (currentPage - 1) * take;
 
-    const where = {};
+    const andConditions = [];
 
-    if (category) {
-      where.categoryId = category;
+    if (categoryId) {
+      andConditions.push({ categoryId });
     }
 
     if (minPrice || maxPrice) {
-      where.price = {};
-      if (minPrice) where.price.gte = parseFloat(minPrice);
-      if (maxPrice) where.price.lte = parseFloat(maxPrice);
+      const priceCondition = {};
+      if (minPrice) priceCondition.gte = parseFloat(minPrice);
+      if (maxPrice) priceCondition.lte = parseFloat(maxPrice);
+      andConditions.push({ price: priceCondition });
     }
 
     if (hasDiscount === "true" || hasDiscount === "1") {
-      where.discountPrice = { not: null };
+      andConditions.push({ discountPrice: { not: null } });
     }
 
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-      ];
+      andConditions.push({
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } },
+        ],
+      });
     }
 
     if (availability === "in_stock") {
-      where.stock = { gt: 0 };
+      andConditions.push({ stock: { gt: 0 } });
     } else if (availability === "out_of_stock") {
-      where.stock = { equals: 0 };
+      andConditions.push({ stock: { equals: 0 } });
     }
+
+    const where =
+      andConditions.length > 0
+        ? andConditions.length === 1
+          ? andConditions[0]
+          : { AND: andConditions }
+        : {};
 
     let orderBy = { createdAt: "desc" };
     switch (sort) {
