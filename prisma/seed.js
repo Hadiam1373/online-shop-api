@@ -4,17 +4,17 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Create categories
-  const electronics = await prisma.category.create({
+  const bouquets = await prisma.category.create({
     data: {
-      name: "Electronics",
-      description: "Electronic devices and gadgets",
+      name: "دسته‌گل و گل‌آرایی",
+      description: "دسته‌گل‌های تازه برای هدیه و مناسبت‌های خاص",
     },
   });
 
-  const clothing = await prisma.category.create({
+  const plants = await prisma.category.create({
     data: {
-      name: "Clothing",
-      description: "Fashion and apparel",
+      name: "گیاهان آپارتمانی",
+      description: "گیاهان سبز برای خانه و محل کار",
     },
   });
 
@@ -22,32 +22,46 @@ async function main() {
   await prisma.product.createMany({
     data: [
       {
-        name: "Smartphone",
-        description: "Latest smartphone with advanced features",
-        price: 699.99,
-        discountPrice: 649.99,
-        stock: 50,
-        images: ["https://example.com/smartphone.jpg"],
-        categoryId: electronics.id,
-        attributes: { color: "Black", storage: "128GB" },
+        name: "دسته‌گل رز صورتی",
+        description: "دسته‌گلی دست‌ساز از رزهای صورتی برای تولد و سالگرد",
+        price: 1890000,
+        discountPrice: 1690000,
+        stock: 20,
+        images: [
+          "https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=900&q=85",
+        ],
+        categoryId: bouquets.id,
+        attributes: {
+          flower: "رز هلندی",
+          color: "صورتی",
+          occasion: "تولد و سالگرد",
+        },
       },
       {
-        name: "Laptop",
-        description: "High-performance laptop for work and gaming",
-        price: 1299.99,
+        name: "دسته‌گل آفتابگردان",
+        description: "ترکیبی پرانرژی از آفتابگردان‌های تازه برای هدیه دادن",
+        price: 1250000,
         stock: 30,
-        images: ["https://example.com/laptop.jpg"],
-        categoryId: electronics.id,
-        attributes: { color: "Silver", ram: "16GB" },
+        images: [
+          "https://images.unsplash.com/photo-1597848212624-e6e8d9f3f5b5?auto=format&fit=crop&w=900&q=85",
+        ],
+        categoryId: bouquets.id,
+        attributes: {
+          flower: "آفتابگردان",
+          color: "زرد",
+          occasion: "تبریک و تشکر",
+        },
       },
       {
-        name: "T-Shirt",
-        description: "Comfortable cotton t-shirt",
-        price: 19.99,
-        stock: 100,
-        images: ["https://example.com/tshirt.jpg"],
-        categoryId: clothing.id,
-        attributes: { size: "M", color: "Blue" },
+        name: "گیاه آپارتمانی پتوس",
+        description: "پتوس سبز و سرحال برای زیباتر کردن فضای خانه",
+        price: 890000,
+        stock: 40,
+        images: [
+          "https://images.unsplash.com/photo-1497250681960-ef046c08a56e?auto=format&fit=crop&w=900&q=85",
+        ],
+        categoryId: plants.id,
+        attributes: { plant: "پتوس", care: "آسان", placement: "فضای داخلی" },
       },
     ],
   });
@@ -58,6 +72,7 @@ async function main() {
     data: {
       email: "admin@example.com",
       password: hashedPassword,
+      phone: "0912000000",
       role: "ADMIN",
     },
   });

@@ -56,33 +56,55 @@ async function main() {
 
   // 4) Category
   let category = await prisma.category.findFirst({
-    where: { name: "Electronics" },
+    where: { name: "دسته‌گل و گل‌آرایی" },
   });
   if (!category) {
     category = await prisma.category.create({
-      data: { name: "Electronics", description: "Electronic devices" },
+      data: {
+        name: "دسته‌گل و گل‌آرایی",
+        description: "دسته‌گل‌های تازه برای هدیه و مناسبت‌های خاص",
+      },
     });
-    console.log("Created category Electronics");
+    console.log("Created category دسته‌گل و گل‌آرایی");
+  }
+
+  let plantsCategory = await prisma.category.findFirst({
+    where: { name: "گیاهان آپارتمانی" },
+  });
+  if (!plantsCategory) {
+    plantsCategory = await prisma.category.create({
+      data: {
+        name: "گیاهان آپارتمانی",
+        description: "گیاهان سبز برای خانه و محل کار",
+      },
+    });
+    console.log("Created category گیاهان آپارتمانی");
   }
 
   // 5) Product
   let product = await prisma.product.findFirst({
-    where: { name: "Smartphone" },
+    where: { name: "دسته‌گل رز صورتی" },
   });
   if (!product) {
     product = await prisma.product.create({
       data: {
-        name: "Smartphone",
-        description: "Latest model",
-        price: 699.99,
-        discountPrice: 649.99,
-        stock: 50,
-        images: ["https://example.com/smartphone.jpg"],
+        name: "دسته‌گل رز صورتی",
+        description: "دسته‌گلی دست‌ساز از رزهای صورتی برای تولد و سالگرد",
+        price: 1890000,
+        discountPrice: 1690000,
+        stock: 20,
+        images: [
+          "https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=900&q=85",
+        ],
         categoryId: category.id,
-        attributes: { color: "Black", storage: "128GB" },
+        attributes: {
+          flower: "رز هلندی",
+          color: "صورتی",
+          occasion: "تولد و سالگرد",
+        },
       },
     });
-    console.log("Created product Smartphone");
+    console.log("Created product دسته‌گل رز صورتی");
   }
 
   // 6) Coupon
@@ -112,7 +134,7 @@ async function main() {
         userId: user.id,
         productId: product.id,
         rating: 5,
-        comment: "Great phone!",
+        comment: "دسته‌گل تازه و بسیار زیبایی بود.",
       },
     });
     console.log("Created review");
@@ -249,19 +271,25 @@ async function main() {
 
   // Add more products to wishlist
   let product2 = await prisma.product.findFirst({
-    where: { name: { contains: "Laptop" } },
+    where: { name: "باکس گل بهاری" },
   });
   if (!product2) {
     product2 = await prisma.product.create({
       data: {
-        name: "Laptop",
-        description: "High-performance laptop",
-        price: 1299.99,
-        discountPrice: 1199.99,
-        stock: 30,
-        images: ["https://example.com/laptop.jpg"],
+        name: "باکس گل بهاری",
+        description: "ترکیبی رنگارنگ از گل‌های فصلی در باکس هدیه",
+        price: 2490000,
+        discountPrice: 2290000,
+        stock: 18,
+        images: [
+          "https://images.unsplash.com/photo-1525310072745-f49212b5ac6d?auto=format&fit=crop&w=900&q=85",
+        ],
         categoryId: category.id,
-        attributes: { brand: "Dell", storage: "512GB SSD" },
+        attributes: {
+          flowers: "رز و ژربرا",
+          color: "ترکیبی",
+          occasion: "هدیه",
+        },
       },
     });
   }
@@ -276,24 +304,30 @@ async function main() {
         productId: product2.id,
       },
     });
-    console.log("Added Laptop to wishlist");
+    console.log("Added باکس گل بهاری to wishlist");
   }
 
-  // Add product 3 - Tablet
+  // Add product 3 - Sunflower bouquet
   let product3 = await prisma.product.findFirst({
-    where: { name: "Tablet" },
+    where: { name: "دسته‌گل آفتابگردان" },
   });
   if (!product3) {
     product3 = await prisma.product.create({
       data: {
-        name: "Tablet",
-        description: "10-inch high-resolution tablet",
-        price: 499.99,
-        discountPrice: 449.99,
-        stock: 45,
-        images: ["https://example.com/tablet.jpg"],
+        name: "دسته‌گل آفتابگردان",
+        description: "ترکیبی پرانرژی از آفتابگردان‌های تازه برای هدیه دادن",
+        price: 1250000,
+        discountPrice: 1150000,
+        stock: 30,
+        images: [
+          "https://images.unsplash.com/photo-1597848212624-e6e8d9f3f5b5?auto=format&fit=crop&w=900&q=85",
+        ],
         categoryId: category.id,
-        attributes: { brand: "Apple", screenSize: "10-inch" },
+        attributes: {
+          flower: "آفتابگردان",
+          color: "زرد",
+          occasion: "تبریک و تشکر",
+        },
       },
     });
   }
@@ -308,24 +342,26 @@ async function main() {
         productId: product3.id,
       },
     });
-    console.log("Added Tablet to wishlist");
+    console.log("Added دسته‌گل آفتابگردان to wishlist");
   }
 
-  // Add product 4 - Wireless Headphones
+  // Add product 4 - Indoor plant
   let product4 = await prisma.product.findFirst({
-    where: { name: "Wireless Headphones" },
+    where: { name: "گیاه آپارتمانی پتوس" },
   });
   if (!product4) {
     product4 = await prisma.product.create({
       data: {
-        name: "Wireless Headphones",
-        description: "Noise-cancelling Bluetooth headphones",
-        price: 199.99,
-        discountPrice: 179.99,
-        stock: 100,
-        images: ["https://example.com/headphones.jpg"],
-        categoryId: category.id,
-        attributes: { brand: "Sony", batteryLife: "30 hours" },
+        name: "گیاه آپارتمانی پتوس",
+        description: "پتوس سبز و سرحال برای زیباتر کردن فضای خانه",
+        price: 890000,
+        discountPrice: 790000,
+        stock: 40,
+        images: [
+          "https://images.unsplash.com/photo-1497250681960-ef046c08a56e?auto=format&fit=crop&w=900&q=85",
+        ],
+        categoryId: plantsCategory.id,
+        attributes: { plant: "پتوس", care: "آسان", placement: "فضای داخلی" },
       },
     });
   }
@@ -340,24 +376,26 @@ async function main() {
         productId: product4.id,
       },
     });
-    console.log("Added Wireless Headphones to wishlist");
+    console.log("Added گیاه آپارتمانی پتوس to wishlist");
   }
 
-  // Add product 5 - USB-C Cable
+  // Add product 5 - Tulip bouquet
   let product5 = await prisma.product.findFirst({
-    where: { name: "USB-C Cable" },
+    where: { name: "دسته‌گل لاله" },
   });
   if (!product5) {
     product5 = await prisma.product.create({
       data: {
-        name: "USB-C Cable",
-        description: "Fast charging USB-C cable (2m)",
-        price: 19.99,
-        discountPrice: 14.99,
-        stock: 500,
-        images: ["https://example.com/usb-cable.jpg"],
+        name: "دسته‌گل لاله",
+        description: "لاله‌های رنگارنگ و تازه برای هدیه‌ای بهاری",
+        price: 1390000,
+        discountPrice: 1290000,
+        stock: 35,
+        images: [
+          "https://images.unsplash.com/photo-1520763185298-1b434c919102?auto=format&fit=crop&w=900&q=85",
+        ],
         categoryId: category.id,
-        attributes: { length: "2m", maxPower: "100W" },
+        attributes: { flower: "لاله", color: "ترکیبی", occasion: "بهار" },
       },
     });
   }
@@ -372,24 +410,30 @@ async function main() {
         productId: product5.id,
       },
     });
-    console.log("Added USB-C Cable to wishlist");
+    console.log("Added دسته‌گل لاله to wishlist");
   }
 
   // Add product 6 - Monitor
   let product6 = await prisma.product.findFirst({
-    where: { name: "4K Monitor" },
+    where: { name: "ارکیده‌ی سفید" },
   });
   if (!product6) {
     product6 = await prisma.product.create({
       data: {
-        name: "4K Monitor",
-        description: "27-inch 4K UHD display",
-        price: 399.99,
-        discountPrice: 349.99,
-        stock: 20,
-        images: ["https://example.com/monitor.jpg"],
+        name: "ارکیده‌ی سفید",
+        description: "ارکیده‌ی سفید و ظریف برای خانه یا هدیه‌ی رسمی",
+        price: 1990000,
+        discountPrice: 1890000,
+        stock: 16,
+        images: [
+          "https://images.unsplash.com/photo-1566943384924-2e6a3d8f6c30?auto=format&fit=crop&w=900&q=85",
+        ],
         categoryId: category.id,
-        attributes: { resolution: "4K UHD", refreshRate: "60Hz" },
+        attributes: {
+          flower: "ارکیده",
+          color: "سفید",
+          placement: "فضای داخلی",
+        },
       },
     });
   }
@@ -404,7 +448,7 @@ async function main() {
         productId: product6.id,
       },
     });
-    console.log("Added 4K Monitor to wishlist");
+    console.log("Added ارکیده‌ی سفید to wishlist");
   }
 
   console.log("Seeding complete");
