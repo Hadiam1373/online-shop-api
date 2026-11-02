@@ -8,8 +8,17 @@ const router = express.Router();
 
 // Validation schemas
 const updateProfileSchema = Joi.object({
-  email: Joi.string().email().optional(),
-  address: Joi.string().optional(),
+  email: Joi.string().email().allow("").optional(),
+  firstName: Joi.string().trim().max(100).allow("").optional(),
+  lastName: Joi.string().trim().max(100).allow("").optional(),
+  province: Joi.string().trim().max(100).allow("").optional(),
+  city: Joi.string().trim().max(100).allow("").optional(),
+  address: Joi.string().trim().max(1000).allow("").optional(),
+  postalCode: Joi.string()
+    .pattern(/^[0-9۰-۹٠-٩]{10}$/)
+    .allow("")
+    .optional(),
+  deliveryNotes: Joi.string().max(500).allow("").optional(),
 });
 
 const changePasswordSchema = Joi.object({

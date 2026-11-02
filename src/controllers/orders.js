@@ -73,14 +73,10 @@ exports.createOrder = async (req, res, next) => {
         price,
       });
 
-      // Update product stock
-      await prisma.product.update({
-        where: { id: item.product.id },
-        data: { stock: { decrement: item.quantity } },
-      });
     }
 
     // Apply coupon if provided
+    let applicableCouponId = null;
     if (couponCode) {
       const coupon = await prisma.coupon.findUnique({
         where: { code: couponCode },
@@ -97,11 +93,7 @@ exports.createOrder = async (req, res, next) => {
           } else {
             discount = coupon.discountValue;
           }
-          // Increment coupon usage
-          await prisma.coupon.update({
-            where: { id: coupon.id },
-            data: { usedCount: { increment: 1 } },
-          });
+          applicableCouponId = coupon.id;
         }
       }
     }
@@ -109,29 +101,69 @@ exports.createOrder = async (req, res, next) => {
     const tax = ((subtotal - discount) * 0.1);
     const total = subtotal - discount + tax;
 
-    // Create order
-    const order = await prisma.order.create({
-      data: {
-        userId,
-        total,
-        status: 'PENDING',
-        recipientFirstName: firstName,
-        recipientLastName: lastName,
-        recipientPhone: user.phone,
-        province,
-        city,
-        address,
-        postalCode: normalizeDigits(postalCode),
-        deliveryNotes: deliveryNotes || null,
-        orderItems: {
-          create: orderItems,
+    const normalizedPostalCode = normalizeDigits(postalCode);
+    const order = await prisma.$transaction(async (transaction) => {
+      for (const item of cart.cartItems) {
+        const stockUpdate = await transaction.product.updateMany({
+          where: {
+            id: item.product.id,
+            stock: { gte: item.quantity },
+          },
+          data: { stock: { decrement: item.quantity } },
+        });
+
+        if (stockUpdate.count !== 1) {
+          const error = new Error(
+            `Insufficient stock for ${item.product.name}`,
+          );
+          error.status = 409;
+          throw error;
+        }
+      }
+
+      if (applicableCouponId) {
+        await transaction.coupon.update({
+          where: { id: applicableCouponId },
+          data: { usedCount: { increment: 1 } },
+        });
+      }
+
+      await transaction.user.update({
+        where: { id: userId },
+        data: {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          province: province.trim(),
+          city: city.trim(),
+          address: address.trim(),
+          postalCode: normalizedPostalCode,
+          deliveryNotes: deliveryNotes?.trim() || null,
         },
-      },
-      include: {
-        orderItems: {
-          include: { product: true },
+      });
+
+      return transaction.order.create({
+        data: {
+          userId,
+          total,
+          status: 'PENDING',
+          recipientFirstName: firstName,
+          recipientLastName: lastName,
+          recipientPhone: user.phone,
+          province,
+          city,
+          address,
+          postalCode: normalizedPostalCode,
+          deliveryNotes: deliveryNotes || null,
+          orderItems: {
+            create: orderItems,
+          },
         },
-      },
+        include: {
+          orderItems: {
+            include: { product: true },
+          },
+        },
+      });
     });
 
     res.status(201).json({

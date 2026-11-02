@@ -33,12 +33,21 @@ exports.getProfile = async (req, res, next) => {
 exports.updateProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { email, address } = req.body;
+    const {
+      email,
+      firstName,
+      lastName,
+      province,
+      city,
+      address,
+      postalCode,
+      deliveryNotes,
+    } = req.body;
 
     // Check if email is already taken
-    if (email) {
+    if (email?.trim()) {
       const existing = await prisma.user.findUnique({
-        where: { email },
+        where: { email: email.trim() },
       });
 
       if (existing && existing.id !== userId) {
@@ -46,19 +55,37 @@ exports.updateProfile = async (req, res, next) => {
       }
     }
 
+    const nullableValue = (value) =>
+      value === undefined ? undefined : value.trim() || null;
     const updated = await prisma.user.update({
       where: { id: userId },
       data: {
-        email: email || undefined,
-        address: address || undefined,
+        email: email === undefined ? undefined : email.trim() || null,
+        firstName: nullableValue(firstName),
+        lastName: nullableValue(lastName),
+        province: nullableValue(province),
+        city: nullableValue(city),
+        address: nullableValue(address),
+        postalCode: nullableValue(postalCode),
+        deliveryNotes: nullableValue(deliveryNotes),
       },
       select: {
         id: true,
         email: true,
+        phone: true,
+        firstName: true,
+        lastName: true,
+        province: true,
+        city: true,
         address: true,
+        postalCode: true,
+        deliveryNotes: true,
         role: true,
         createdAt: true,
         updatedAt: true,
+        _count: {
+          select: { orders: true, reviews: true },
+        },
       },
     });
 
