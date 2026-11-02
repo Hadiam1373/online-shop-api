@@ -7,6 +7,36 @@ exports.createReview = async (req, res, next) => {
     const userId = req.user.id;
     const { productId, rating, comment } = req.body;
 
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        firstName: true,
+        lastName: true,
+        province: true,
+        city: true,
+        address: true,
+        postalCode: true,
+      },
+    });
+
+    const registrationComplete =
+      user &&
+      [
+        user.firstName,
+        user.lastName,
+        user.province,
+        user.city,
+        user.address,
+        user.postalCode,
+      ].every((value) => typeof value === "string" && value.trim().length > 0);
+
+    if (!registrationComplete) {
+      return res.status(403).json({
+        error: "Complete your profile before submitting a review",
+        message_fa: "برای ثبت دیدگاه، ابتدا اطلاعات پروفایل و نشانی خود را کامل کنید.",
+      });
+    }
+
     // Validation
     if (!productId || !rating) {
       return res
@@ -52,7 +82,7 @@ exports.createReview = async (req, res, next) => {
         moderated: true, // Auto-approve reviews by default
       },
       include: {
-        user: { select: { id: true, email: true } },
+        user: { select: { id: true, firstName: true, lastName: true } },
         product: { select: { id: true, name: true } },
       },
     });
@@ -93,7 +123,7 @@ exports.getProductReviews = async (req, res, next) => {
         skip,
         take: parseInt(limit),
         include: {
-          user: { select: { id: true, email: true } },
+          user: { select: { id: true, firstName: true, lastName: true } },
         },
         orderBy: { createdAt: "desc" },
       }),
@@ -170,7 +200,7 @@ exports.getReviewById = async (req, res, next) => {
     const review = await prisma.review.findUnique({
       where: { id },
       include: {
-        user: { select: { id: true, email: true } },
+        user: { select: { id: true, firstName: true, lastName: true } },
         product: { select: { id: true, name: true } },
       },
     });
@@ -216,7 +246,7 @@ exports.updateReview = async (req, res, next) => {
         moderated: false, // Reset moderation when updated
       },
       include: {
-        user: { select: { id: true, email: true } },
+        user: { select: { id: true, firstName: true, lastName: true } },
         product: { select: { id: true, name: true } },
       },
     });
@@ -296,7 +326,7 @@ exports.getPendingReviews = async (req, res, next) => {
         skip,
         take: parseInt(limit),
         include: {
-          user: { select: { id: true, email: true } },
+          user: { select: { id: true, firstName: true, lastName: true } },
           product: { select: { id: true, name: true } },
         },
         orderBy: { createdAt: "asc" },
