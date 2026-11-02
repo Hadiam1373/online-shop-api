@@ -80,10 +80,12 @@ STRIPE_CURRENCY=usd
 ZARINPAL_MERCHANT_ID=your-zarinpal-merchant-id
 ZARINPAL_SANDBOX=true
 ZARINPAL_CALLBACK_URL=http://localhost:5002/api/payments/zarinpal/callback
+FRONTEND_URL=http://localhost:3000
 ```
 
 If you want to use Stripe in test mode, set `STRIPE_SECRET_KEY` to a valid Stripe test secret key.
 If you want to use Zarinpal sandbox, set `ZARINPAL_MERCHANT_ID` and leave `ZARINPAL_SANDBOX=true`.
+Set `FRONTEND_URL` to the public storefront origin in production so payment results return customers to the storefront.
 
 The Zarinpal test page is available at `http://localhost:5002/zarinpal-sandbox.html` when the server is running.
 

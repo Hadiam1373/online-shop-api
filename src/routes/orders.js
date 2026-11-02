@@ -9,6 +9,15 @@ const router = express.Router();
 // Validation schemas
 const createOrderSchema = Joi.object({
   couponCode: Joi.string().optional(),
+  firstName: Joi.string().trim().min(2).max(100).required(),
+  lastName: Joi.string().trim().min(2).max(100).required(),
+  province: Joi.string().trim().min(2).max(100).required(),
+  city: Joi.string().trim().min(2).max(100).required(),
+  address: Joi.string().trim().min(5).max(1000).required(),
+  postalCode: Joi.string()
+    .pattern(/^[0-9۰-۹٠-٩]{10}$/)
+    .required(),
+  deliveryNotes: Joi.string().max(500).allow("").optional(),
 });
 
 const updateOrderSchema = Joi.object({

@@ -166,6 +166,27 @@ module.exports = {
           couponCode: { type: "string" },
         },
       },
+      DeliveryOrderCreate: {
+        type: "object",
+        required: [
+          "firstName",
+          "lastName",
+          "province",
+          "city",
+          "address",
+          "postalCode",
+        ],
+        properties: {
+          couponCode: { type: "string" },
+          firstName: { type: "string", example: "علی" },
+          lastName: { type: "string", example: "رضایی" },
+          province: { type: "string", example: "تهران" },
+          city: { type: "string", example: "تهران" },
+          address: { type: "string", example: "خیابان ولیعصر، پلاک ۱۰" },
+          postalCode: { type: "string", example: "1234567890" },
+          deliveryNotes: { type: "string" },
+        },
+      },
       PaymentProcess: {
         type: "object",
         required: ["orderId", "cardToken"],
@@ -929,7 +950,7 @@ module.exports = {
         requestBody: {
           content: {
             "application/json": {
-              schema: { $ref: "#/components/schemas/OrderCreate" },
+              schema: { $ref: "#/components/schemas/DeliveryOrderCreate" },
             },
           },
         },

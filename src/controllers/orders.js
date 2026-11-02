@@ -1,11 +1,39 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+const normalizeDigits = (value) => {
+  const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+  const arabicDigits = '٠١٢٣٤٥٦٧٨٩';
+
+  return value.replace(/[۰-۹٠-٩]/g, (digit) => {
+    const persianIndex = persianDigits.indexOf(digit);
+    return String(persianIndex === -1 ? arabicDigits.indexOf(digit) : persianIndex);
+  });
+};
+
 // Create order from cart
 exports.createOrder = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { couponCode } = req.body;
+    const {
+      couponCode,
+      firstName,
+      lastName,
+      province,
+      city,
+      address,
+      postalCode,
+      deliveryNotes,
+    } = req.body;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { phone: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     // Get user's cart
     const cart = await prisma.cart.findFirst({
@@ -21,13 +49,22 @@ exports.createOrder = async (req, res, next) => {
       return res.status(400).json({ error: 'Cart is empty' });
     }
 
+    const unavailableItem = cart.cartItems.find(
+      (item) => item.product.stock < item.quantity,
+    );
+    if (unavailableItem) {
+      return res.status(409).json({
+        error: `Insufficient stock for ${unavailableItem.product.name}`,
+      });
+    }
+
     // Calculate total
     let subtotal = 0;
     let discount = 0;
     const orderItems = [];
 
     for (const item of cart.cartItems) {
-      const price = item.product.discountPrice || item.product.price;
+      const price = item.product.discountPrice ?? item.product.price;
       subtotal += price * item.quantity;
 
       orderItems.push({
@@ -44,7 +81,6 @@ exports.createOrder = async (req, res, next) => {
     }
 
     // Apply coupon if provided
-    let couponId = null;
     if (couponCode) {
       const coupon = await prisma.coupon.findUnique({
         where: { code: couponCode },
@@ -52,13 +88,15 @@ exports.createOrder = async (req, res, next) => {
 
       if (coupon) {
         const now = new Date();
-        if (coupon.expirationDate >= now && coupon.usedCount < coupon.usageLimit) {
+        if (
+          coupon.expirationDate >= now &&
+          (coupon.usageLimit === null || coupon.usedCount < coupon.usageLimit)
+        ) {
           if (coupon.discountType === 'PERCENTAGE') {
             discount = (subtotal * coupon.discountValue) / 100;
           } else {
             discount = coupon.discountValue;
           }
-          couponId = coupon.id;
           // Increment coupon usage
           await prisma.coupon.update({
             where: { id: coupon.id },
@@ -77,6 +115,14 @@ exports.createOrder = async (req, res, next) => {
         userId,
         total,
         status: 'PENDING',
+        recipientFirstName: firstName,
+        recipientLastName: lastName,
+        recipientPhone: user.phone,
+        province,
+        city,
+        address,
+        postalCode: normalizeDigits(postalCode),
+        deliveryNotes: deliveryNotes || null,
         orderItems: {
           create: orderItems,
         },
@@ -87,9 +133,6 @@ exports.createOrder = async (req, res, next) => {
         },
       },
     });
-
-    // Clear cart
-    await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
 
     res.status(201).json({
       order,
