@@ -36,4 +36,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 
 # Run the application with nodemon for development
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["npm", "run", "dev"]
+CMD ["sh", "-c", "npx prisma generate && npm run dev"]

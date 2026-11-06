@@ -17,4 +17,4 @@ services:
     ports:
       - '5000:5000'
       - '9229:9229'  # Node debugger port
-    command: npm run dev
+    command: ["sh", "-c", "npx prisma generate && npm run dev"]
